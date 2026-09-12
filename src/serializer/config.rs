@@ -1,6 +1,6 @@
 use crate::{
     data::Config,
-    serializer::path::{CONFIG_FILE, DOTFILE_FOLDER},
+    serializer::data::{CONFIG_FILE, DOTFILE_FOLDER},
 };
 use anyhow::{Context, Result};
 use std::{fs, path::PathBuf};

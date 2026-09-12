@@ -1,4 +1,4 @@
-use crate::serializer::path::{DOTFILE_FOLDER, LAST_TASK_FILE};
+use crate::serializer::data::{DOTFILE_FOLDER, LAST_TASK_FILE};
 use anyhow::{Context, Result};
 use std::{fs, path::PathBuf};
 

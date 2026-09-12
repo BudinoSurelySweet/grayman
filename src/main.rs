@@ -1,7 +1,7 @@
-use grayman::{cli::run, error};
+use grayman::{cli::run::run, error};
 
 fn main() {
-    if let Err(err) = run::run() {
+    if let Err(err) = run() {
         error!("{}", err);
     }
 }
