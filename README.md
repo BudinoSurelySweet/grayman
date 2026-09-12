@@ -1,6 +1,6 @@
-# Fucina
+# Grayman
 
-Fucina is CLI and a TUI to execute tasks.
+Grayman is CLI and a TUI to execute tasks.
 
 # Development
 

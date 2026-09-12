@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-09-12
+
+### Changed
+
+- Changed the name from "fucina" to "grayman".
+
 ## [0.1.0] - 2026-09-12
 
 ### Changed
@@ -14,5 +20,6 @@ All notable changes to this project will be documented in this file.
 
 - Removed the TUI related code.
 
-[unreleased]: https://github.com/BudinoSurelySweet/fucina/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/BudinoSurelySweet/fucina/releases/tag/v0.1.0
+[unreleased]: https://github.com/BudinoSurelySweet/grayman/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/BudinoSurelySweet/grayman/releases/tag/v0.1.1
+[0.1.0]: https://github.com/BudinoSurelySweet/grayman/releases/tag/v0.1.0

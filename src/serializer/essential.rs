@@ -32,7 +32,7 @@ pub fn init(force: bool) -> Result<()> {
     Ok(())
 }
 
-// Wipe all the files and folders of fucina
+// Wipe all the files and folders of grayman
 pub fn wipe() -> Result<()> {
     let path = Path::new(DOTFILE_FOLDER);
 
