@@ -13,12 +13,12 @@ use std::collections::HashSet;
 
 fn prompt_available_tasks(config: &Config) -> Result<String> {
     let options = config.tasks.keys().cloned().collect();
-    let task_name = inquire::Select::new("What task do you want to forge?", options).prompt()?;
+    let task_name = inquire::Select::new("What task do you want to run?", options).prompt()?;
 
     Ok(task_name)
 }
 
-pub fn execute_forge(data: ExecutionData) -> Result<()> {
+pub fn execute_run(data: ExecutionData) -> Result<()> {
     let config = load_config()?;
     let task_name;
 

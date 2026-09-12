@@ -1,10 +1,10 @@
 use crate::cli::{
-    action_clear::execute_clear,
-    action_forge::execute_forge,
+    action_add::execute_add,
     action_init::execute_init,
-    action_new::execute_new,
     action_remove::execute_remove,
+    action_run::execute_run,
     action_watch::execute_watch,
+    action_wipe::execute_wipe,
     args_data::{Action, Cli},
 };
 use anyhow::Result;
@@ -16,11 +16,11 @@ pub fn run() -> Result<()> {
     match args.action {
         Action::Init => execute_init()?,
         Action::Tui => todo!("Implement the tui"),
-        Action::Forge(data) => execute_forge(data)?,
+        Action::Run(data) => execute_run(data)?,
         Action::Watch(data) => execute_watch(data)?,
-        Action::New { action } => execute_new(action)?,
+        Action::Add { action } => execute_add(action)?,
         Action::Remove { action } => execute_remove(action)?,
-        Action::Clear => execute_clear()?,
+        Action::Wipe => execute_wipe()?,
     }
 
     Ok(())

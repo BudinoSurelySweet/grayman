@@ -9,48 +9,50 @@ pub struct Cli {
 
 #[derive(Subcommand)]
 pub enum Action {
-    /// Initialize Faber in the current directory.
+    /// Initialize Grayman in the current directory.
     Init,
-
+    /// Launch the interactive terminal user interface (TUI).
     Tui,
-
-    /// Run the specified task. If no task was given it'll run the last runned task. If there is no task runned a prompt will appear.
-    Forge(ExecutionData),
-
+    /// Run a task. Runs the last executed task if none is specified.
+    Run(ExecutionData),
+    /// Run a task and re-run it when files change. Runs the last executed task if none is specified.
     Watch(ExecutionData),
-
-    New {
+    /// Add configuration entries (variables, tasks).
+    Add {
         #[clap(subcommand)]
-        action: NewAction,
+        action: AddAction,
     },
-
+    /// Remove configuration entries (variables, tasks).
     Remove {
         #[clap(subcommand)]
         action: RemoveAction,
     },
-
-    /// Clear all the content related to faber from the current directory.
-    Clear,
+    /// Remove all Grayman configuration and state from the current directory.
+    Wipe,
 }
 
 #[derive(Args)]
 pub struct ExecutionData {
-    /// Name of the task to run.
+    /// Name of the task to execute.
     #[clap(short, long)]
     pub name: Option<String>,
-
+    /// Select a task interactively from a list.
     #[clap(short, long, conflicts_with = "name")]
     pub select: bool,
 }
 
 #[derive(Subcommand, Clone)]
-pub enum NewAction {
+pub enum AddAction {
+    /// Add a new variable to the configuration.
     Var,
+    /// Add a new task definition.
     Task,
 }
 
 #[derive(Subcommand, Clone)]
 pub enum RemoveAction {
+    /// Remove an existing variable from the configuration.
     Var,
+    /// Remove a task definition.
     Task,
 }

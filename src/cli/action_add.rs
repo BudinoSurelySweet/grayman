@@ -1,5 +1,5 @@
 use crate::{
-    cli::args_data::NewAction,
+    cli::args_data::AddAction,
     data::Task,
     info,
     serializer::config::{load_config, save_config},
@@ -139,11 +139,11 @@ fn prompt_task_creation() -> Result<(String, Task)> {
 }
 
 // TODO: Devo spostare la logica di creazione nell'engine
-pub fn execute_new(action: NewAction) -> Result<()> {
+pub fn execute_add(action: AddAction) -> Result<()> {
     let mut config = load_config()?;
 
     match action {
-        NewAction::Var => {
+        AddAction::Var => {
             let mut env = config.env.unwrap_or_else(|| HashMap::new());
 
             let var_name = inquire::Text::new("What's the variable's name?").prompt()?;
@@ -155,7 +155,7 @@ pub fn execute_new(action: NewAction) -> Result<()> {
 
             info!("Environment variable \"{}\" created succesfully", var_name);
         }
-        NewAction::Task => {
+        AddAction::Task => {
             let (name, task) = prompt_task_creation()?;
 
             config.tasks.insert(name.clone(), task);
