@@ -1,0 +1,60 @@
+use crate::{
+    cli::args_data::RemoveAction,
+    info,
+    serializer::config::{load_config, save_config},
+};
+use anyhow::{Result, anyhow};
+
+// TODO: Devo spostare la logica di rimozione nell'engine
+pub fn execute_remove(action: RemoveAction) -> Result<()> {
+    let mut config = load_config()?;
+
+    match action {
+        RemoveAction::Var => {
+            let Some(mut env) = config.env else {
+                return Err(anyhow!("There are no environment variables"));
+            };
+            let options = env.iter().map(|(name, _)| name.clone()).collect();
+            let vars_to_remove =
+                inquire::MultiSelect::new("What variables do you want to remove?", options)
+                    .prompt()?;
+
+            for v in &vars_to_remove {
+                env.remove(v);
+            }
+
+            config.env = Some(env);
+
+            save_config(&config)?;
+
+            if vars_to_remove.is_empty() {
+                info!("No variable was removed");
+            } else if vars_to_remove.len() == 1 {
+                info!("Variable \"{}\" removed succesfully", vars_to_remove[0]);
+            } else {
+                info!("Variables {:?} removed succesfully", vars_to_remove);
+            }
+        }
+        RemoveAction::Task => {
+            let options = config.tasks.iter().map(|(name, _)| name.clone()).collect();
+            let tasks_to_remove =
+                inquire::MultiSelect::new("What tasks do you want to remove?", options).prompt()?;
+
+            for t in &tasks_to_remove {
+                config.tasks.remove(t);
+            }
+
+            save_config(&config)?;
+
+            if tasks_to_remove.is_empty() {
+                info!("No task was removed");
+            } else if tasks_to_remove.len() == 1 {
+                info!("Task \"{}\" removed succesfully", tasks_to_remove[0]);
+            } else {
+                info!("Tasks {:?} removed succesfully", tasks_to_remove);
+            }
+        }
+    }
+
+    Ok(())
+}
