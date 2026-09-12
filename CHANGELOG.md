@@ -14,5 +14,5 @@ All notable changes to this project will be documented in this file.
 
 - Removed the TUI related code.
 
-[unreleased]: https://github.com/olivierlacan/fucina/compare/v0.1.0...HEAD
+[unreleased]: https://github.com/BudinoSurelySweet/fucina/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/BudinoSurelySweet/fucina/releases/tag/v0.1.0
