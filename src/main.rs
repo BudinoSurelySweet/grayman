@@ -1,3 +1,7 @@
+use fucina::{cli::cli, error};
+
 fn main() {
-    println!("Hello, world!");
+    if let Err(err) = cli::run() {
+        error!("{}", err);
+    }
 }

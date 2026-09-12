@@ -5,7 +5,7 @@ use crate::{
 use anyhow::{Context, Result};
 use std::{
     fs::{self, remove_dir_all},
-    path::{Path, PathBuf},
+    path::Path,
 };
 
 // Initialize all the necessary files in the current folder

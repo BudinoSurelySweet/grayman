@@ -2,14 +2,14 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 // Config file structure
-#[derive(Serialize, Deserialize, Default)]
+#[derive(Serialize, Deserialize, Default, Clone)]
 pub struct Config {
     pub env: Option<HashMap<String, String>>,
     pub tasks: HashMap<String, Task>,
 }
 
 // Task specific structure
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Task {
     pub command: String,
     pub description: Option<String>,
