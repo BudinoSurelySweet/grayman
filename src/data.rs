@@ -1,0 +1,21 @@
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+
+// Config file structure
+#[derive(Serialize, Deserialize, Default)]
+pub struct Config {
+    pub env: Option<HashMap<String, String>>,
+    pub tasks: HashMap<String, Task>,
+}
+
+// Task specific structure
+#[derive(Serialize, Deserialize)]
+pub struct Task {
+    pub command: String,
+    pub description: Option<String>,
+    pub depends_on: Option<Vec<String>>,
+    pub env: Option<HashMap<String, String>>,
+    pub cwd: Option<String>,
+    pub shell: Option<bool>,
+    pub watch: Option<Vec<String>>,
+}
