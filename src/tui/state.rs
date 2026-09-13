@@ -9,20 +9,24 @@ use ratatui::{
     widgets::Block,
 };
 
-use crate::tui::{
-    panel_bottom_left::BottomLeftPanel, panel_right::RightPanel, panel_top_left::TopLeftPanel,
-    trait_panel::Panel,
+use crate::{
+    engine::multithread::runner::run_task_with_deps,
+    serializer::config::load_config,
+    tui::{
+        panel_bottom_left::BottomLeftPanel, panel_right::RightPanel, panel_top_left::TopLeftPanel,
+        trait_panel::PanelWidget,
+    },
 };
 
 enum TaskMode {
-    Forge,
+    Run,
     Watch,
 }
 
 impl fmt::Display for TaskMode {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            TaskMode::Forge => write!(f, "Forge"),
+            TaskMode::Run => write!(f, "Run"),
             TaskMode::Watch => write!(f, "Watch"),
         }
     }
@@ -106,7 +110,7 @@ impl State {
             focused_panel: CurrentPanel::TopLeft,
             selected_panel: None,
             hide_left_panels: false,
-            task_mode: TaskMode::Forge,
+            task_mode: TaskMode::Run,
 
             top_left_panel,
             bottom_left_panel,
@@ -185,8 +189,23 @@ impl State {
             KeyCode::Char('q') => self.running = false,
 
             _ if self.selected_panel.is_none() => match key.code {
+                KeyCode::Char('c') => {
+                    self.right_panel.clear_logs();
+                }
                 KeyCode::Char('s') => match self.task_mode {
-                    TaskMode::Forge => todo!(),
+                    TaskMode::Run => {
+                        let Ok(config) = load_config() else { return };
+                        let Ok(task) = self.top_left_panel.get_selected_task() else {
+                            return;
+                        };
+                        let Ok(receiver) = run_task_with_deps(task, config) else {
+                            return;
+                        };
+
+                        for s in receiver {
+                            self.right_panel.update_logs(s);
+                        }
+                    }
                     TaskMode::Watch => todo!(),
                 },
 
@@ -205,8 +224,8 @@ impl State {
 
                 KeyCode::Char('m') => {
                     self.task_mode = match self.task_mode {
-                        TaskMode::Forge => TaskMode::Watch,
-                        TaskMode::Watch => TaskMode::Forge,
+                        TaskMode::Run => TaskMode::Watch,
+                        TaskMode::Watch => TaskMode::Run,
                     }
                 }
 
@@ -268,7 +287,7 @@ impl State {
         let [top_left, bottom_left] = left.layout(&layout);
 
         let title_and_version_and_global_keybinds = Line::from_iter([
-            Span::styled("Faber ", Style::default().bold()),
+            Span::styled(" Faber ", Style::default().bold()),
             Span::styled("v0.1.0", Style::default().gray()),
             Span::from("      Quit"),
             Span::styled(" [q] ", Style::default().blue()),
@@ -281,8 +300,8 @@ impl State {
             frame.render_widget(top_block, top_left);
             frame.render_widget(bottom_block, bottom_left);
         } else {
-            let _ = self.top_left_panel.render(frame, top_left);
-            let _ = self.bottom_left_panel.render(frame, bottom_left);
+            frame.render_widget(&mut self.top_left_panel, top_left);
+            frame.render_widget(&mut self.bottom_left_panel, bottom_left);
         }
 
         let available_keybinds = if let Some(panel) = &self.selected_panel {
@@ -292,26 +311,20 @@ impl State {
                 CurrentPanel::Right => self.right_panel.get_available_keybinds(),
             }
         } else {
-            let selected_task = self
-                .top_left_panel
-                .get_selected_task_name()
-                .unwrap_or(String::from("No task"));
-
             Line::from_iter([
-                Span::from(" Task"),
-                Span::styled(format!(" {}", selected_task), Style::default().blue()),
                 Span::from(" Mode"),
                 Span::styled(format!(" {} [m]", self.task_mode), Style::default().blue()),
                 Span::from(" Start"),
                 Span::styled(" [s]", Style::default().blue()),
+                Span::from(" Clear"),
+                Span::styled(" [c]", Style::default().blue()),
                 Span::from(" Fullscreen"),
                 Span::styled(" [f] ", Style::default().blue()),
             ])
         };
 
-        frame.render_widget(title_and_version_and_global_keybinds, bottom);
         frame.render_widget(available_keybinds.alignment(Alignment::Right), bottom);
-
-        let _ = self.right_panel.render(frame, right);
+        frame.render_widget(title_and_version_and_global_keybinds, bottom);
+        frame.render_widget(&mut self.right_panel, right);
     }
 }

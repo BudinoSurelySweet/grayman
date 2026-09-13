@@ -17,7 +17,7 @@ pub fn run_task_with_deps(task: Task, config: Config) -> Result<Receiver<String>
     let (sender, receiver) = mpsc::channel();
 
     thread::spawn(move || {
-        for task in task_list {
+        'first: for task in task_list {
             // Get the command of the current task
             let mut command = match create_command(&task, &config, StdioMode::Piped) {
                 Ok(command) => command,
@@ -48,7 +48,9 @@ pub fn run_task_with_deps(task: Task, config: Config) -> Result<Receiver<String>
             // Wait for the process to finish
             match child.wait() {
                 Ok(exit_code) => {
-                    let _ = sender.send(format!("Process ended with exit code {}", exit_code));
+                    if !exit_code.success() {
+                        break 'first;
+                    }
                 }
                 Err(error) => {
                     let _ = sender.send(format!("Error while waiting for child: {}", error));

@@ -1,20 +1,21 @@
-use crate::serializer::config::load_config;
-use crate::tui::trait_panel::Panel;
+use crate::tui::trait_panel::PanelWidget;
+use crate::{data::Task, serializer::config::load_config};
 use anyhow::{Context, Result};
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{
-    layout::Offset,
-    prelude::{Frame, Rect, Span},
+    layout::{Alignment, Offset},
+    prelude::{Buffer, Rect, Span},
     style::Style,
     symbols,
     text::Line,
-    widgets::{Block, List, ListState, Paragraph, Wrap},
+    widgets::{Block, List, ListState, Paragraph, StatefulWidget, Widget, Wrap},
 };
 
 pub struct TopLeftPanel {
+    pub task_list_state: ListState,
+
     focused: bool,
     selected: bool,
-    task_list_state: ListState,
 }
 
 impl TopLeftPanel {
@@ -29,13 +30,12 @@ impl TopLeftPanel {
         }
     }
 
-    pub fn get_selected_task_name(&self) -> Result<String> {
+    pub fn get_selected_task(&self) -> Result<Task> {
         let config = load_config()?;
 
-        let mut task_list: Vec<String> =
-            config.tasks.iter().map(|task| task.name.clone()).collect();
+        let mut task_list = config.tasks.clone();
 
-        task_list.sort();
+        task_list.sort_by(|a, b| a.name.cmp(&b.name));
 
         let index = self
             .task_list_state
@@ -49,7 +49,7 @@ impl TopLeftPanel {
     }
 }
 
-impl Panel for TopLeftPanel {
+impl PanelWidget for TopLeftPanel {
     fn set_focused(&mut self, value: bool) {
         self.focused = value
     }
@@ -78,18 +78,31 @@ impl Panel for TopLeftPanel {
         }
     }
 
-    fn render(&mut self, frame: &mut Frame, area: Rect) {
-        let block = Block::bordered().border_style(self.get_style());
-        let title = Paragraph::new(" Tasks ").centered();
+    fn get_available_keybinds(&self) -> Line<'static> {
+        Line::from_iter([
+            Span::from(" Down"),
+            Span::styled(" [j/Down]", Style::default().blue()),
+            Span::from(" Up"),
+            Span::styled(" [k/Up] ", Style::default().blue()),
+        ])
+    }
+}
 
-        frame.render_widget(block, area);
-        frame.render_widget(title, area);
+impl Widget for &mut TopLeftPanel {
+    fn render(self, area: Rect, buf: &mut Buffer)
+    where
+        Self: Sized,
+    {
+        Block::bordered()
+            .title(Line::from(" Tasks ").alignment(Alignment::Center))
+            .border_style(self.get_style())
+            .render(area, buf);
 
         match load_config() {
             Err(_) => {
-                let fallback =
-                    Paragraph::new("There is no configuration.").wrap(Wrap { trim: true });
-                frame.render_widget(fallback, area + Offset::new(2, 1));
+                Paragraph::new("There is no configuration.")
+                    .wrap(Wrap { trim: true })
+                    .render(area + Offset::new(2, 1), buf);
             }
             Ok(config) => {
                 let mut task_list: Vec<String> =
@@ -97,25 +110,15 @@ impl Panel for TopLeftPanel {
 
                 task_list.sort();
 
-                let task_list = List::new(task_list)
-                    .highlight_symbol(format!("{} ", symbols::DOT))
-                    .highlight_style(self.get_style());
-
-                frame.render_stateful_widget(
-                    task_list,
+                StatefulWidget::render(
+                    List::new(task_list)
+                        .highlight_symbol(format!("{} ", symbols::DOT))
+                        .highlight_style(self.get_style()),
                     area + Offset::new(2, 1),
+                    buf,
                     &mut self.task_list_state,
                 );
             }
         }
-    }
-
-    fn get_available_keybinds(&self) -> Line<'static> {
-        Line::from_iter([
-            Span::from(" Down"),
-            Span::styled(" [j]", Style::default().blue()),
-            Span::from(" Up"),
-            Span::styled(" [k] ", Style::default().blue()),
-        ])
     }
 }

@@ -1,17 +1,18 @@
-use crate::{serializer::config::load_config, tui::trait_panel::Panel};
+use crate::{serializer::config::load_config, tui::trait_panel::PanelWidget};
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{
-    layout::{Constraint, Offset},
-    prelude::{Frame, Rect},
+    layout::{Alignment, Constraint, Offset},
+    prelude::{Buffer, Rect},
     style::Style,
     text::{Line, Span},
-    widgets::{Block, Paragraph, Row, Table, TableState, Wrap},
+    widgets::{Block, Paragraph, Row, StatefulWidget, Table, TableState, Widget, Wrap},
 };
 
 pub struct BottomLeftPanel {
+    pub variable_table_state: TableState,
+
     focused: bool,
     selected: bool,
-    variable_table_state: TableState,
 }
 
 impl BottomLeftPanel {
@@ -28,7 +29,7 @@ impl BottomLeftPanel {
     }
 }
 
-impl Panel for BottomLeftPanel {
+impl PanelWidget for BottomLeftPanel {
     fn set_focused(&mut self, value: bool) {
         self.focused = value
     }
@@ -57,18 +58,31 @@ impl Panel for BottomLeftPanel {
         }
     }
 
-    fn render(&mut self, frame: &mut Frame, area: Rect) {
-        let block = Block::bordered().border_style(self.get_style());
-        let title = Paragraph::new(" Variables ").centered();
+    fn get_available_keybinds(&self) -> Line<'static> {
+        Line::from_iter([
+            Span::from(" Down"),
+            Span::styled(" [j/Down]", Style::default().blue()),
+            Span::from(" Up"),
+            Span::styled(" [k/Up] ", Style::default().blue()),
+        ])
+    }
+}
 
-        frame.render_widget(block, area);
-        frame.render_widget(title, area);
+impl Widget for &mut BottomLeftPanel {
+    fn render(self, area: Rect, buf: &mut Buffer)
+    where
+        Self: Sized,
+    {
+        Block::bordered()
+            .title(Line::from(" Variables ").alignment(Alignment::Center))
+            .border_style(self.get_style())
+            .render(area, buf);
 
         match load_config() {
             Err(_) => {
-                let fallback =
-                    Paragraph::new("There is no configuration.").wrap(Wrap { trim: true });
-                frame.render_widget(fallback, area + Offset::new(2, 1));
+                Paragraph::new("There is no configuration.")
+                    .wrap(Wrap { trim: true })
+                    .render(area + Offset::new(2, 1), buf);
             }
             Ok(config) => {
                 let env = config.env.unwrap_or_default();
@@ -87,21 +101,13 @@ impl Panel for BottomLeftPanel {
                 let widths = [Constraint::Percentage(40), Constraint::Fill(1)];
                 let table = Table::new(rows, widths).row_highlight_style(self.get_style());
 
-                frame.render_stateful_widget(
+                StatefulWidget::render(
                     table,
                     area + Offset::new(2, 1),
+                    buf,
                     &mut self.variable_table_state,
                 );
             }
         }
-    }
-
-    fn get_available_keybinds(&self) -> Line<'static> {
-        Line::from_iter([
-            Span::from(" Down"),
-            Span::styled(" [j]", Style::default().blue()),
-            Span::from(" Up"),
-            Span::styled(" [k] ", Style::default().blue()),
-        ])
     }
 }

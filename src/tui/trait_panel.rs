@@ -1,7 +1,7 @@
 use crossterm::event::KeyEvent;
-use ratatui::{Frame, layout::Rect, style::Style, text::Line};
+use ratatui::{style::Style, text::Line};
 
-pub trait Panel {
+pub trait PanelWidget {
     fn get_style(&self) -> Style {
         if self.is_selected() {
             Style::default().green()
@@ -21,8 +21,6 @@ pub trait Panel {
     fn is_selected(&self) -> bool;
 
     fn handle_input(&mut self, key: KeyEvent);
-
-    fn render(&mut self, frame: &mut Frame, area: Rect);
 
     fn get_available_keybinds(&self) -> Line<'static>;
 }
