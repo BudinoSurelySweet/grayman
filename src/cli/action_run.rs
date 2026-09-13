@@ -1,7 +1,7 @@
 use crate::{
     cli::args_data::ExecutionData,
     data::Config,
-    executor::runner::execute_task_with_dependencies,
+    engine::runner::run_task_with_deps,
     info,
     serializer::{
         config::load_config,
@@ -9,10 +9,9 @@ use crate::{
     },
 };
 use anyhow::{Context, Result};
-use std::collections::HashSet;
 
 fn prompt_available_tasks(config: &Config) -> Result<String> {
-    let options = config.tasks.keys().cloned().collect();
+    let options = config.tasks.iter().map(|task| task.name.clone()).collect();
     let task_name = inquire::Select::new("What task do you want to run?", options).prompt()?;
 
     Ok(task_name)
@@ -32,14 +31,15 @@ pub fn execute_run(data: ExecutionData) -> Result<()> {
         task_name = prompt_available_tasks(&config)?;
     }
 
+    info!("Task \"{}\" is selected", task_name);
+
     let task = config
         .tasks
-        .get(&task_name)
+        .iter()
+        .find(|task| task.name == task_name)
         .context(format!("There is no task named \"{}\"", task_name))?;
 
-    let mut executed_task = HashSet::new();
-
-    execute_task_with_dependencies((&task_name, task), &config, &mut executed_task)?;
+    run_task_with_deps(task, &config)?;
 
     save_last_task_name(&task_name)?;
 

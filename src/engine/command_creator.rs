@@ -7,26 +7,26 @@ pub enum StdioMode {
     Piped,
 }
 
-pub fn create_command(task: (&str, &Task), config: &Config, mode: StdioMode) -> Result<Command> {
+pub fn create_command(task: &Task, config: &Config, mode: StdioMode) -> Result<Command> {
     let mut command;
 
-    if let Some(shell) = task.1.shell
+    if let Some(shell) = task.shell
         && shell
     {
         command = Command::new("sh");
-        command.arg("-c").arg(&task.1.command);
+        command.arg("-c").arg(&task.command);
     } else {
-        let mut parts = task.1.command.split_whitespace();
+        let mut parts = task.command.split_whitespace();
         let program = parts
             .next()
-            .context(format!("Command of \"{}\" can't be empty", task.0))?;
+            .context(format!("Command of \"{}\" can't be empty", task.name))?;
 
         command = Command::new(program);
         command.args(parts);
     }
 
     // Set the current working directory if the user specified it
-    if let Some(cwd) = &task.1.cwd {
+    if let Some(cwd) = &task.cwd {
         command.current_dir(cwd);
     }
 
@@ -36,7 +36,7 @@ pub fn create_command(task: (&str, &Task), config: &Config, mode: StdioMode) -> 
     }
 
     // Inject the local environment variables
-    if let Some(env) = &task.1.env {
+    if let Some(env) = &task.env {
         command.envs(env);
     }
 

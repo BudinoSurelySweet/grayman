@@ -1,18 +1,16 @@
-use std::{collections::HashSet, path::Path, process::Child, sync::mpsc, time::Duration};
-
+use crate::{
+    data::{Config, Task},
+    engine::{
+        command_creator::{StdioMode, create_command},
+        runner::run_task_with_deps,
+    },
+};
 use anyhow::{Result, anyhow};
 use notify_debouncer_full::{
     Debouncer, NoCache, new_debouncer,
     notify::{EventKind, INotifyWatcher, RecursiveMode},
 };
-
-use crate::{
-    data::{Config, Task},
-    executor::{
-        command_creator::{StdioMode, create_command},
-        runner::execute_task_with_dependencies,
-    },
-};
+use std::{path::Path, process::Child, sync::mpsc, time::Duration};
 
 #[derive(Debug)]
 pub enum EventMessageType {
@@ -40,23 +38,17 @@ fn register_list_into_watcher(
     Ok(())
 }
 
-fn execute_command<F>(
-    task: (&str, &Task),
-    config: &Config,
-    emit_message: F,
-) -> Result<Option<Child>>
+fn execute_command<F>(task: &Task, config: &Config, emit_message: F) -> Result<Option<Child>>
 where
     F: Fn(WatcherEventData) -> Result<()>,
 {
-    if let Some(dependencies) = &task.1.depends_on {
-        let mut executed = HashSet::new();
-
+    if let Some(dependencies) = &task.depends_on {
         for name in dependencies {
-            let Some(task) = config.tasks.get(name) else {
+            let Some(task) = config.tasks.iter().find(|task| task.name == *name) else {
                 return Err(anyhow!("Task doesn't exists"));
             };
 
-            if let Err(e) = execute_task_with_dependencies((name, task), config, &mut executed) {
+            if let Err(e) = run_task_with_deps(task, config) {
                 emit_message(WatcherEventData {
                     message: format!("Error captured\n\n{:?}", e),
                     message_type: EventMessageType::Error,
@@ -73,11 +65,11 @@ where
     Ok(child)
 }
 
-pub fn start_watcher<F>(task: (&str, &Task), config: &Config, emit_message: F) -> Result<()>
+pub fn start_watcher<F>(task: &Task, config: &Config, emit_message: F) -> Result<()>
 where
     F: Fn(WatcherEventData) -> Result<()>,
 {
-    let Some(watch_list) = task.1.clone().watch.filter(|w| !w.is_empty()) else {
+    let Some(watch_list) = task.clone().watch.filter(|w| !w.is_empty()) else {
         return Err(anyhow!("No available watch list for the specified task"));
     };
 

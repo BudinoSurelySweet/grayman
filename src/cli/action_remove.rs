@@ -1,5 +1,6 @@
 use crate::{
     cli::args_data::RemoveAction,
+    data::Task,
     info,
     serializer::config::{load_config, save_config},
 };
@@ -36,13 +37,22 @@ pub fn execute_remove(action: RemoveAction) -> Result<()> {
             }
         }
         RemoveAction::Task => {
-            let options = config.tasks.iter().map(|(name, _)| name.clone()).collect();
+            let options = config.tasks.iter().map(|task| task.name.clone()).collect();
             let tasks_to_remove =
                 inquire::MultiSelect::new("What tasks do you want to remove?", options).prompt()?;
+            let tasks: Vec<Task> = config
+                .tasks
+                .iter()
+                .filter_map(|task| {
+                    if tasks_to_remove.contains(&task.name) {
+                        Some(task.clone())
+                    } else {
+                        None
+                    }
+                })
+                .collect();
 
-            for t in &tasks_to_remove {
-                config.tasks.remove(t);
-            }
+            config.tasks = tasks;
 
             save_config(&config)?;
 

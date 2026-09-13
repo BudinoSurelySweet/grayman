@@ -5,12 +5,13 @@ use std::collections::HashMap;
 #[derive(Serialize, Deserialize, Default, Clone)]
 pub struct Config {
     pub env: Option<HashMap<String, String>>,
-    pub tasks: HashMap<String, Task>,
+    pub tasks: Vec<Task>,
 }
 
 // Task specific structure
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Task {
+    pub name: String,
     pub command: String,
     pub description: Option<String>,
     pub depends_on: Option<Vec<String>>,

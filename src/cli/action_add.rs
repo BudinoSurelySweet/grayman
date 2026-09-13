@@ -8,9 +8,9 @@ use anyhow::Result;
 use inquire::validator::{MinLengthValidator, Validation};
 use std::collections::HashMap;
 
-fn prompt_task_creation() -> Result<(String, Task)> {
+fn prompt_task_creation() -> Result<Task> {
     let config = load_config()?;
-    let task_list: Vec<String> = config.tasks.keys().cloned().collect();
+    let task_list: Vec<String> = config.tasks.iter().map(|task| task.name.clone()).collect();
 
     let name_validator = |input: &str| {
         let input = input.trim();
@@ -126,6 +126,7 @@ fn prompt_task_creation() -> Result<(String, Task)> {
     let watch = if watch.is_empty() { None } else { Some(watch) };
 
     let task = Task {
+        name,
         command,
         description,
         depends_on,
@@ -135,7 +136,7 @@ fn prompt_task_creation() -> Result<(String, Task)> {
         watch,
     };
 
-    Ok((name, task))
+    Ok(task)
 }
 
 // TODO: Devo spostare la logica di creazione nell'engine
@@ -156,12 +157,13 @@ pub fn execute_add(action: AddAction) -> Result<()> {
             info!("Environment variable \"{}\" created succesfully", var_name);
         }
         AddAction::Task => {
-            let (name, task) = prompt_task_creation()?;
+            let task = prompt_task_creation()?;
+            let task_name = task.name.clone();
 
-            config.tasks.insert(name.clone(), task);
+            config.tasks.push(task);
             save_config(&config)?;
 
-            info!("Task \"{}\" created succesfully", name);
+            info!("Task \"{}\" created succesfully", task_name);
         }
     }
 

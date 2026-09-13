@@ -1,9 +1,8 @@
 use crate::{
     cli::args_data::ExecutionData,
     data::Config,
-    error,
-    executor::watcher::{EventMessageType, WatcherEventData, start_watcher},
-    info,
+    engine::watcher::{EventMessageType, WatcherEventData, start_watcher},
+    error, info,
     serializer::{
         config::load_config,
         last_task::{get_last_task_name, save_last_task_name},
@@ -13,7 +12,17 @@ use crate::{
 use anyhow::{Result, anyhow};
 
 fn prompt_available_tasks(config: &Config) -> Result<String> {
-    let options = config.tasks.keys().cloned().collect();
+    let options = config
+        .tasks
+        .iter()
+        .filter_map(|task| {
+            if task.watch.is_some() {
+                Some(task.name.clone())
+            } else {
+                None
+            }
+        })
+        .collect();
     let task_name = inquire::Select::new("What task do you want to watch?", options).prompt()?;
 
     Ok(task_name)
@@ -33,8 +42,8 @@ pub fn execute_watch(data: ExecutionData) -> Result<()> {
         task_name = prompt_available_tasks(&config)?;
     }
 
-    let Some(task) = config.tasks.get(&task_name) else {
-        return Err(anyhow!("Task doesn't exists"));
+    let Some(task) = config.tasks.iter().find(|task| task.name == task_name) else {
+        return Err(anyhow!(format!("There is no task named \"{}\"", task_name)));
     };
 
     let emit_message = |data: WatcherEventData| {
@@ -47,7 +56,7 @@ pub fn execute_watch(data: ExecutionData) -> Result<()> {
         Ok(())
     };
 
-    start_watcher((&task_name, task), &config, emit_message)?;
+    start_watcher(&task, &config, emit_message)?;
 
     save_last_task_name(&task_name)?;
 
