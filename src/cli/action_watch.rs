@@ -49,8 +49,8 @@ pub fn execute_watch(data: ExecutionData) -> Result<()> {
     let emit_message = |data: WatcherEventData| {
         match data.message_type {
             EventMessageType::Info => info!("{}", data.message),
-            EventMessageType::Warn => warn!("{}", data.message),
-            EventMessageType::Error => error!("{}", data.message),
+            EventMessageType::_Warn => warn!("{}", data.message),
+            EventMessageType::_Error => error!("{}", data.message),
         }
 
         Ok(())

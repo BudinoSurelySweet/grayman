@@ -2,67 +2,27 @@ use crate::{
     data::{Config, Task},
     engine::{
         command_creator::{StdioMode, create_command},
-        runner::run_task_with_deps,
+        extractor::get_tasks_to_execute,
     },
 };
 use anyhow::{Result, anyhow};
 use notify_debouncer_full::{
-    Debouncer, NoCache, new_debouncer,
-    notify::{EventKind, INotifyWatcher, RecursiveMode},
+    new_debouncer,
+    notify::{EventKind, RecursiveMode},
 };
 use std::{path::Path, process::Child, sync::mpsc, time::Duration};
 
 #[derive(Debug)]
 pub enum EventMessageType {
     Info,
-    Warn,
-    Error,
+    _Warn,
+    _Error,
 }
 
 #[derive(Debug)]
 pub struct WatcherEventData {
     pub message: String,
     pub message_type: EventMessageType,
-}
-
-fn register_list_into_watcher(
-    debouncer: &mut Debouncer<INotifyWatcher, NoCache>,
-    watch_list: Vec<String>,
-) -> Result<()> {
-    for path in watch_list {
-        if let Err(e) = debouncer.watch(Path::new(&path), RecursiveMode::Recursive) {
-            return Err(anyhow!(format!("Can't monitor \"{}\": {}", path, e)));
-        }
-    }
-
-    Ok(())
-}
-
-fn execute_command<F>(task: &Task, config: &Config, emit_message: F) -> Result<Option<Child>>
-where
-    F: Fn(WatcherEventData) -> Result<()>,
-{
-    if let Some(dependencies) = &task.depends_on {
-        for name in dependencies {
-            let Some(task) = config.tasks.iter().find(|task| task.name == *name) else {
-                return Err(anyhow!("Task doesn't exists"));
-            };
-
-            if let Err(e) = run_task_with_deps(task, config) {
-                emit_message(WatcherEventData {
-                    message: format!("Error captured\n\n{:?}", e),
-                    message_type: EventMessageType::Error,
-                })?;
-
-                return Ok(None);
-            }
-        }
-    }
-
-    let mut command = create_command(task, config, StdioMode::Direct)?;
-    let child = Some(command.spawn()?);
-
-    Ok(child)
 }
 
 pub fn start_watcher<F>(task: &Task, config: &Config, emit_message: F) -> Result<()>
@@ -76,25 +36,41 @@ where
     let (sender, receiver) = mpsc::channel();
     let mut debouncer = new_debouncer(Duration::from_millis(200), None, sender)?;
 
-    register_list_into_watcher(&mut debouncer, watch_list)?;
+    // Register the watch_list into the debouncer
+    for path in watch_list {
+        if let Err(e) = debouncer.watch(Path::new(&path), RecursiveMode::Recursive) {
+            return Err(anyhow!(format!("Can't monitor \"{}\": {}", path, e)));
+        }
+    }
 
-    let mut current_child = execute_command(task, config, &emit_message)?;
+    // let mut current_child = execute_command(task, config, &emit_message)?;
+    let mut current_child: Option<Child> = None;
 
-    let mut restart = move |message| -> Result<()> {
+    let task_list = get_tasks_to_execute(task, config)?;
+
+    let mut execute = move |message: Option<&str>| -> Result<()> {
         if let Some(mut child) = current_child.take() {
             let _ = child.kill(); // Kill the child
             let _ = child.wait(); // Clean the process
         }
 
-        emit_message(WatcherEventData {
-            message: String::from(message),
-            message_type: EventMessageType::Info,
-        })?;
+        if let Some(message) = message {
+            emit_message(WatcherEventData {
+                message: String::from(message),
+                message_type: EventMessageType::Info,
+            })?;
+        }
 
-        current_child = execute_command(task, config, &emit_message)?;
+        for task in &task_list {
+            let mut command = create_command(task, config, StdioMode::Direct)?;
+
+            current_child = Some(command.spawn()?);
+        }
 
         Ok(())
     };
+
+    execute(None)?;
 
     for event in receiver {
         match event {
@@ -104,9 +80,9 @@ where
                     match event.event.kind {
                         EventKind::Any => {}
                         EventKind::Access(_) => {}
-                        EventKind::Create(_) => restart("File creation detected")?,
-                        EventKind::Modify(_) => restart("File modification detected")?,
-                        EventKind::Remove(_) => restart("File remove detected")?,
+                        EventKind::Create(_) => execute(Some("File creation detected"))?,
+                        EventKind::Modify(_) => execute(Some("File modification detected"))?,
+                        EventKind::Remove(_) => execute(Some("File remove detected"))?,
                         EventKind::Other => {}
                     }
                 }
