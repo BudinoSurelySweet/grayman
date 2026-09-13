@@ -10,11 +10,13 @@ use ratatui::{
         Widget,
     },
 };
+use std::collections::VecDeque;
 
 pub struct RightPanel {
-    logs: Vec<String>,
-    scroll: u16,
+    pub max_output_len: usize,
 
+    output: VecDeque<String>,
+    scroll: u16,
     focused: bool,
     selected: bool,
 }
@@ -24,18 +26,23 @@ impl RightPanel {
         Self {
             focused: false,
             selected: false,
-            logs: Vec::new(),
+            output: VecDeque::new(),
             scroll: 0,
+            max_output_len: 2000,
         }
     }
 
-    pub fn update_logs(&mut self, s: String) {
-        self.logs.push(s);
+    pub fn update_output(&mut self, s: String) {
+        if self.output.len() > self.max_output_len {
+            self.output.pop_front();
+        }
+
+        self.output.push_back(s);
         self.scroll = u16::MAX;
     }
 
-    pub fn clear_logs(&mut self) {
-        self.logs.clear();
+    pub fn clear_output(&mut self) {
+        self.output.clear();
     }
 }
 
@@ -70,6 +77,8 @@ impl PanelWidget for RightPanel {
 
     fn get_available_keybinds(&self) -> Line<'static> {
         Line::from_iter([
+            Span::from(" Exit"),
+            Span::styled(" [esc]", Style::default().blue()),
             Span::from(" Down"),
             Span::styled(" [j/Down]", Style::default().blue()),
             Span::from(" Up"),
@@ -90,21 +99,22 @@ impl Widget for &mut RightPanel {
 
         let inner_area = block.inner(area);
 
-        let total_lines: u16 = self.logs.iter().map(|s| s.lines().count() as u16).sum();
-
+        let total_lines: u16 = self.output.iter().map(|s| s.lines().count() as u16).sum();
         let viewport_height = inner_area.height;
         let max_scroll = total_lines.saturating_sub(viewport_height);
 
-        // Block the scroll
+        // Block the scroll at the max scroll value
         self.scroll = self.scroll.min(max_scroll);
 
-        let text_lines: Vec<Line> = self.logs.iter().map(|s| Line::from(s.as_str())).collect();
+        let text_lines: Vec<Line> = self.output.iter().map(|s| Line::from(s.as_str())).collect();
 
+        // Render the outputs
         Paragraph::new(text_lines)
             .block(block)
             .scroll((self.scroll, 0))
             .render(area, buf);
 
+        // Render the scrollbar
         if total_lines > viewport_height {
             let mut scrollbar_state = ScrollbarState::default()
                 .content_length(max_scroll as usize)

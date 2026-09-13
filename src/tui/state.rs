@@ -3,10 +3,10 @@ use core::fmt;
 use crossterm::event::{self, Event, KeyCode, KeyEvent};
 use ratatui::{
     DefaultTerminal, Frame,
-    layout::{Alignment, Constraint, Layout},
-    style::Style,
-    text::{Line, Span},
-    widgets::Block,
+    layout::{Alignment, Constraint, Layout, Rect},
+    style::{Color, Style},
+    text::{Line, Span, Text},
+    widgets::{Block, Paragraph},
 };
 
 use crate::{
@@ -190,7 +190,7 @@ impl State {
 
             _ if self.selected_panel.is_none() => match key.code {
                 KeyCode::Char('c') => {
-                    self.right_panel.clear_logs();
+                    self.right_panel.clear_output();
                 }
                 KeyCode::Char('s') => match self.task_mode {
                     TaskMode::Run => {
@@ -203,7 +203,7 @@ impl State {
                         };
 
                         for s in receiver {
-                            self.right_panel.update_logs(s);
+                            self.right_panel.update_output(s);
                         }
                     }
                     TaskMode::Watch => todo!(),
@@ -271,6 +271,70 @@ impl State {
     }
 
     fn render(&mut self, frame: &mut Frame) {
+        let min_width = 24;
+        let min_height = 12;
+        let min_width_for_hiding = 48;
+
+        /*
+         * Terminal is too small
+         */
+
+        if frame.area().width < min_width || frame.area().height < min_height {
+            // Colora di rosso solo i valori che non rispettano i requisiti
+            let w_color = if frame.area().width < min_width {
+                Color::LightRed
+            } else {
+                Color::White
+            };
+            let h_color = if frame.area().height < min_height {
+                Color::LightRed
+            } else {
+                Color::White
+            };
+
+            // 2. Costruisci il testo riga per riga
+            let text = Text::from(vec![
+                Line::from("Terminal size too small"),
+                Line::from(vec![
+                    Span::raw("Width: "),
+                    Span::styled(
+                        format!("{:<2}", frame.area().width),
+                        Style::default().fg(w_color),
+                    ),
+                    Span::raw("  Height: "),
+                    Span::styled(
+                        format!("{:<2}", frame.area().height),
+                        Style::default().fg(h_color),
+                    ),
+                ]),
+                Line::from(""), // Spazio vuoto
+                Line::from("Needed at least"),
+                Line::from(format!("Width: {}  Height: {}", min_width, min_height)),
+            ]);
+
+            // 3. Calcola un'area per centrare il testo verticalmente
+            let text_height = 5; // Numero di righe del nostro Text
+            let y_offset = frame.area().height.saturating_sub(text_height) / 2;
+
+            let center_area = Rect {
+                x: frame.area().x,
+                y: frame.area().y + y_offset,
+                width: frame.area().width,
+                height: text_height,
+            };
+
+            // 4. Renderizza il Paragrafo con allineamento orizzontale centrale
+            let p = Paragraph::new(text).alignment(Alignment::Center);
+
+            frame.render_widget(p, center_area);
+
+            return;
+        }
+
+        /*
+         * Main Layout
+         */
+
         let layout = Layout::vertical([
             Constraint::Length(1),
             Constraint::Fill(1),
@@ -278,27 +342,33 @@ impl State {
         ]);
         let [_, center, bottom] = frame.area().layout(&layout);
 
-        let left_panels_len = if self.hide_left_panels { 4 } else { 30 };
-        let layout = Layout::horizontal([Constraint::Length(left_panels_len), Constraint::Fill(1)])
-            .spacing(1);
+        let left_panel_constraint = if self.hide_left_panels {
+            if frame.area().width > min_width_for_hiding {
+                Constraint::Length(4)
+            } else {
+                Constraint::Length(0)
+            }
+        } else {
+            Constraint::Length(30)
+        };
+        let layout = Layout::horizontal([left_panel_constraint, Constraint::Fill(1)]).spacing(1);
         let [left, right] = center.layout(&layout);
 
         let layout = Layout::vertical([Constraint::Ratio(1, 2), Constraint::Fill(1)]);
         let [top_left, bottom_left] = left.layout(&layout);
 
-        let title_and_version_and_global_keybinds = Line::from_iter([
-            Span::styled(" Faber ", Style::default().bold()),
-            Span::styled("v0.1.0", Style::default().gray()),
-            Span::from("      Quit"),
-            Span::styled(" [q] ", Style::default().blue()),
-        ]);
+        /*
+         * Widgets
+         */
 
         if self.hide_left_panels {
-            let top_block = Block::bordered();
-            let bottom_block = Block::bordered();
+            if frame.area().width > min_width_for_hiding {
+                let top_block = Block::bordered();
+                let bottom_block = Block::bordered();
 
-            frame.render_widget(top_block, top_left);
-            frame.render_widget(bottom_block, bottom_left);
+                frame.render_widget(top_block, top_left);
+                frame.render_widget(bottom_block, bottom_left);
+            }
         } else {
             frame.render_widget(&mut self.top_left_panel, top_left);
             frame.render_widget(&mut self.bottom_left_panel, bottom_left);
@@ -314,16 +384,28 @@ impl State {
             Line::from_iter([
                 Span::from(" Mode"),
                 Span::styled(format!(" {} [m]", self.task_mode), Style::default().blue()),
+                Span::from(" Select"),
+                Span::styled(" [space]", Style::default().blue()),
                 Span::from(" Start"),
                 Span::styled(" [s]", Style::default().blue()),
                 Span::from(" Clear"),
                 Span::styled(" [c]", Style::default().blue()),
                 Span::from(" Fullscreen"),
-                Span::styled(" [f] ", Style::default().blue()),
+                Span::styled(" [f]", Style::default().blue()),
+                Span::from(" Quit"),
+                Span::styled(" [q] ", Style::default().blue()),
             ])
         };
 
-        frame.render_widget(available_keybinds.alignment(Alignment::Right), bottom);
+        let title_and_version_and_global_keybinds = Line::from_iter([
+            Span::styled(" Grayman ", Style::default().bold()),
+            Span::styled("v0.1.2", Style::default().gray()),
+        ]);
+
+        if frame.area().width > min_width_for_hiding {
+            frame.render_widget(available_keybinds.alignment(Alignment::Right), bottom);
+        }
+
         frame.render_widget(title_and_version_and_global_keybinds, bottom);
         frame.render_widget(&mut self.right_panel, right);
     }

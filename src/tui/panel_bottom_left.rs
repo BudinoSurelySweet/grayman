@@ -60,6 +60,8 @@ impl PanelWidget for BottomLeftPanel {
 
     fn get_available_keybinds(&self) -> Line<'static> {
         Line::from_iter([
+            Span::from(" Exit"),
+            Span::styled(" [esc]", Style::default().blue()),
             Span::from(" Down"),
             Span::styled(" [j/Down]", Style::default().blue()),
             Span::from(" Up"),
