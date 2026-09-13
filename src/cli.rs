@@ -5,5 +5,5 @@ mod action_run;
 mod action_watch;
 mod action_wipe;
 mod args_data;
+pub mod entry_point;
 pub mod msg;
-pub mod run;
