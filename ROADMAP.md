@@ -1,0 +1,18 @@
+# Roadmap
+
+...
+
+## Now
+
+- Add a keybind to kill the watcher in the TUI.
+- Refining the UX of the TUI.
+
+## Next
+
+- Add a way to add and remove tasks in the TUI's tasks panel.
+- Add a way to add and remove variables in the TUI's variables panel.
+
+## Later
+
+- Add a settings panel to the TUI.
+- Add a way to switch layout in the TUI. (e.g. 3 panel layout, 1 panel layout)
