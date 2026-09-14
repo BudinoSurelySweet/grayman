@@ -74,15 +74,29 @@ pub fn start_watcher(task: Task, config: Config) -> Result<Receiver<String>> {
                         }
                     };
                 } else {
-                    match command.status() {
+                    match command.spawn() {
                         Err(error) => {
-                            let _ = sender.send(format!("{}", error));
+                            let _ = sender.send(format!("Spawn error: {}", error));
                             return;
                         }
-                        Ok(status) if !status.success() => {
-                            break;
+                        Ok(mut temp_child) => {
+                            let stdout = temp_child.stdout.take();
+                            let stderr = temp_child.stderr.take();
+
+                            let (_, _) = get_stdxxx_handles(stdout, stderr, &sender);
+
+                            match temp_child.wait() {
+                                Ok(status) if !status.success() => {
+                                    let _ = sender.send(format!("{}", status));
+                                    break;
+                                }
+                                Err(error) => {
+                                    let _ = sender.send(format!("Wait error: {}", error));
+                                    return;
+                                }
+                                _ => {}
+                            }
                         }
-                        _ => {}
                     }
                 }
             }

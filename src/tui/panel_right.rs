@@ -3,7 +3,7 @@ use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{
     layout::{Alignment, Margin},
     prelude::{Buffer, Rect},
-    style::Style,
+    style::{Color, Style, Stylize},
     text::{Line, Span},
     widgets::{
         Block, Padding, Paragraph, Scrollbar, ScrollbarOrientation, ScrollbarState, StatefulWidget,
@@ -12,8 +12,15 @@ use ratatui::{
 };
 use std::collections::VecDeque;
 
+pub enum RightPanelStatus {
+    Off,
+    Watching,
+    Executing,
+}
+
 pub struct RightPanel {
     pub max_output_len: usize,
+    pub status: RightPanelStatus,
 
     output: VecDeque<String>,
     scroll: u16,
@@ -29,6 +36,7 @@ impl RightPanel {
             output: VecDeque::new(),
             scroll: 0,
             max_output_len: 2000,
+            status: RightPanelStatus::Off,
         }
     }
 
@@ -92,10 +100,22 @@ impl Widget for &mut RightPanel {
     where
         Self: Sized,
     {
+        let bottom_title = match self.status {
+            RightPanelStatus::Off => "",
+            RightPanelStatus::Watching => " Watching ",
+            RightPanelStatus::Executing => " Executing ",
+        };
+
         let block = Block::bordered()
-            .title(Line::from(" Console ").alignment(Alignment::Center))
             .border_style(self.get_style())
-            .padding(Padding::new(2, 2, 0, 0));
+            .padding(Padding::new(2, 2, 0, 0))
+            .title(Line::from(" Console ").alignment(Alignment::Center))
+            .title_bottom(
+                Line::from(bottom_title)
+                    .bg(self.get_color())
+                    .fg(Color::Black)
+                    .alignment(Alignment::Center),
+            );
 
         let inner_area = block.inner(area);
 

@@ -8,7 +8,10 @@ use ratatui::{
     text::{Line, Span, Text},
     widgets::{Block, Paragraph},
 };
-use std::{sync::mpsc::Receiver, time::Duration};
+use std::{
+    sync::mpsc::{Receiver, TryRecvError},
+    time::{Duration, Instant},
+};
 
 use crate::{
     engine::multithread::{runner::run_task_with_deps, watcher::start_watcher},
@@ -18,6 +21,8 @@ use crate::{
         trait_panel::PanelWidget,
     },
 };
+
+use super::panel_right::RightPanelStatus;
 
 enum TaskMode {
     Run,
@@ -99,6 +104,7 @@ pub struct State {
     hide_left_panels: bool,
     task_mode: TaskMode,
     output_receiver: Option<Receiver<String>>,
+    last_output_time: Option<Instant>,
 }
 
 impl State {
@@ -114,6 +120,7 @@ impl State {
             hide_left_panels: false,
             task_mode: TaskMode::Run,
             output_receiver: None,
+            last_output_time: None,
 
             top_left_panel,
             bottom_left_panel,
@@ -178,9 +185,40 @@ impl State {
     pub fn run(&mut self, mut terminal: DefaultTerminal) -> Result<()> {
         while self.running {
             if let Some(receiver) = &self.output_receiver {
-                for s in receiver.try_iter() {
-                    self.right_panel.update_output(s);
-                }
+                const WAIT_TIME: u64 = 500;
+
+                match receiver.try_recv() {
+                    Err(TryRecvError::Disconnected) => {
+                        let should_turn_off = match self.last_output_time {
+                            Some(time) => time.elapsed() > Duration::from_millis(WAIT_TIME),
+                            None => true,
+                        };
+
+                        if should_turn_off {
+                            self.last_output_time = None;
+                            self.right_panel.status = RightPanelStatus::Off;
+                            self.output_receiver = None;
+                        }
+                    }
+                    Err(TryRecvError::Empty) => {
+                        if let Some(last_output_time) = self.last_output_time
+                            && last_output_time.elapsed() > Duration::from_millis(WAIT_TIME)
+                        {
+                            self.last_output_time = None;
+                            self.right_panel.status = RightPanelStatus::Watching;
+                        }
+                    }
+                    Ok(first_msg) => {
+                        self.last_output_time = Some(Instant::now());
+                        self.right_panel.update_output(first_msg);
+
+                        for s in receiver.try_iter() {
+                            self.right_panel.update_output(s);
+                        }
+
+                        self.right_panel.status = RightPanelStatus::Executing;
+                    }
+                };
             }
 
             terminal.draw(|f| self.render(f))?;

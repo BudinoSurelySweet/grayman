@@ -1,5 +1,8 @@
 use crossterm::event::KeyEvent;
-use ratatui::{style::Style, text::Line};
+use ratatui::{
+    style::{Color, Style},
+    text::Line,
+};
 
 pub trait PanelWidget {
     fn get_style(&self) -> Style {
@@ -9,6 +12,16 @@ pub trait PanelWidget {
             Style::default().blue()
         } else {
             Style::default()
+        }
+    }
+
+    fn get_color(&self) -> Color {
+        if self.is_selected() {
+            Color::Green
+        } else if self.is_focused() {
+            Color::Blue
+        } else {
+            Color::Gray
         }
     }
 

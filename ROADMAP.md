@@ -14,5 +14,6 @@
 
 ## Later
 
+- Try integrating a terminal inside the TUI. (maybe with the crate `tui-term`)
 - Add a settings panel to the TUI.
 - Add a way to switch layout in the TUI. (e.g. 3 panel layout, 1 panel layout)
