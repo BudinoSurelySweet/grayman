@@ -6,8 +6,8 @@ use ratatui::{
     style::{Color, Style, Stylize},
     text::{Line, Span},
     widgets::{
-        Block, Padding, Paragraph, Scrollbar, ScrollbarOrientation, ScrollbarState, StatefulWidget,
-        Widget,
+        Block, BorderType, Padding, Paragraph, Scrollbar, ScrollbarOrientation, ScrollbarState,
+        StatefulWidget, Widget,
     },
 };
 use std::collections::VecDeque;
@@ -100,14 +100,15 @@ impl Widget for &mut RightPanel {
     where
         Self: Sized,
     {
-        let bottom_title = match self.status {
-            RightPanelStatus::Off => "",
-            RightPanelStatus::Watching => " Watching ",
-            RightPanelStatus::Executing => " Executing ",
+        let (bottom_title, border_type) = match self.status {
+            RightPanelStatus::Off => ("", BorderType::Plain),
+            RightPanelStatus::Watching => (" Watching ", BorderType::HeavyDoubleDashed),
+            RightPanelStatus::Executing => (" Executing ", BorderType::HeavyDoubleDashed),
         };
 
         let block = Block::bordered()
             .border_style(self.get_style())
+            .border_type(border_type)
             .padding(Padding::new(2, 2, 0, 0))
             .title(Line::from(" Console ").alignment(Alignment::Center))
             .title_bottom(

@@ -81,10 +81,10 @@ impl PanelWidget for TopLeftPanel {
 
     fn handle_input(&mut self, key: KeyEvent) {
         match key.code {
-            KeyCode::Char('k') => {
+            KeyCode::Char('k') | KeyCode::Up => {
                 self.task_list_state.select_previous();
             }
-            KeyCode::Char('j') => {
+            KeyCode::Char('j') | KeyCode::Down => {
                 self.task_list_state.select_next();
             }
             _ => {}

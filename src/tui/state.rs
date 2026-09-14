@@ -248,41 +248,46 @@ impl State {
                     // TODO: Add a panel for confirmation
                     self.right_panel.clear_output();
                 }
-                KeyCode::Char('s') => match self.task_mode {
-                    TaskMode::Run => {
-                        let Ok(config) = load_config() else { return };
-                        let Ok(task) = self.top_left_panel.get_selected_task() else {
-                            return;
-                        };
-
-                        // TODO: Manage this error and show it to the user
-                        let _ = save_last_task_name(&task.name);
-
-                        self.output_receiver = run_task_with_deps(task, config).ok();
-                    }
-                    TaskMode::Watch => {
-                        let Ok(config) = load_config() else { return };
-                        let Ok(task) = self.top_left_panel.get_selected_task() else {
-                            return;
-                        };
-
-                        // TODO: Manage this error and show it to the user
-                        let _ = save_last_task_name(&task.name);
-
-                        let Some((receiver, stop_flag)) = start_watcher(task, config).ok() else {
-                            return;
-                        };
-
-                        self.output_receiver = Some(receiver);
-                        self.stop_watcher_flag = Some(stop_flag);
-                    }
-                },
-                KeyCode::Char('d') => {
+                KeyCode::Char('s') => {
+                    // Stop the watcher if it's on
                     if let Some(flag) = &self.stop_watcher_flag {
                         flag.store(true, Ordering::Relaxed);
+
+                        self.stop_watcher_flag = None;
+
+                        return;
                     }
 
-                    self.stop_watcher_flag = None;
+                    match self.task_mode {
+                        TaskMode::Run => {
+                            let Ok(config) = load_config() else { return };
+                            let Ok(task) = self.top_left_panel.get_selected_task() else {
+                                return;
+                            };
+
+                            // TODO: Manage this error and show it to the user
+                            let _ = save_last_task_name(&task.name);
+
+                            self.output_receiver = run_task_with_deps(task, config).ok();
+                        }
+                        TaskMode::Watch => {
+                            let Ok(config) = load_config() else { return };
+                            let Ok(task) = self.top_left_panel.get_selected_task() else {
+                                return;
+                            };
+
+                            // TODO: Manage this error and show it to the user
+                            let _ = save_last_task_name(&task.name);
+
+                            let Some((receiver, stop_flag)) = start_watcher(task, config).ok()
+                            else {
+                                return;
+                            };
+
+                            self.output_receiver = Some(receiver);
+                            self.stop_watcher_flag = Some(stop_flag);
+                        }
+                    }
                 }
 
                 KeyCode::Char('f') => {
@@ -457,17 +462,21 @@ impl State {
                 CurrentPanel::Right => self.right_panel.get_available_keybinds(),
             }
         } else {
+            let start_stop_label = if self.stop_watcher_flag.is_some() {
+                " Stop"
+            } else {
+                " Start"
+            };
+
             Line::from_iter([
                 Span::from(" Mode"),
                 Span::styled(format!(" {} [m]", self.task_mode), Style::default().blue()),
-                Span::from(" Select"),
-                Span::styled(" [space]", Style::default().blue()),
+                Span::from(start_stop_label),
+                Span::styled(" [s]", Style::default().blue()),
                 Span::from(" Clear"),
                 Span::styled(" [c]", Style::default().blue()),
-                Span::from(" Start"),
-                Span::styled(" [s]", Style::default().blue()),
-                Span::from(" Stop"),
-                Span::styled(" [d]", Style::default().blue()),
+                Span::from(" Select"),
+                Span::styled(" [space]", Style::default().blue()),
                 Span::from(" Fullscreen"),
                 Span::styled(" [f]", Style::default().blue()),
                 Span::from(" Quit"),

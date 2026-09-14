@@ -48,10 +48,10 @@ impl PanelWidget for BottomLeftPanel {
 
     fn handle_input(&mut self, key: KeyEvent) {
         match key.code {
-            KeyCode::Char('k') => {
+            KeyCode::Char('k') | KeyCode::Up => {
                 self.variable_table_state.select_previous();
             }
-            KeyCode::Char('j') => {
+            KeyCode::Char('j') | KeyCode::Down => {
                 self.variable_table_state.select_next();
             }
             _ => {}

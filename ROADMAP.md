@@ -4,7 +4,6 @@
 
 ## Now
 
-- Add a keybind to kill the watcher in the TUI.
 - Refining the UX of the TUI.
 
 ## Next
