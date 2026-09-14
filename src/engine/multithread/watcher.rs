@@ -34,19 +34,15 @@ pub fn start_watcher(task: Task, config: Config) -> Result<Receiver<String>> {
         }
     }
 
-    let mut child_list: Option<Vec<Child>> = None;
-
+    let mut child_list: Vec<Child> = Vec::new();
     let task_list = get_tasks_to_execute(&task, &config)?;
-
     let (sender, receiver) = mpsc::channel();
 
     let mut execute = {
         let sender = sender.clone();
 
         move |message: Option<&str>| {
-            let mut child_list = child_list.take().unwrap_or_default();
-
-            for child in &mut child_list {
+            for mut child in child_list.drain(..) {
                 let _ = child.kill(); // Kill the child
                 let _ = child.wait(); // Clean the process
             }

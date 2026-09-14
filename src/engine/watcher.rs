@@ -43,12 +43,12 @@ where
         }
     }
 
-    let mut current_child: Option<Child> = None;
+    let mut child_list: Vec<Child> = Vec::new();
 
     let task_list = get_tasks_to_execute(task, config)?;
 
     let mut execute = move |message: Option<&str>| -> Result<()> {
-        if let Some(mut child) = current_child.take() {
+        for mut child in child_list.drain(..) {
             let _ = child.kill(); // Kill the child
             let _ = child.wait(); // Clean the process
         }
@@ -63,7 +63,9 @@ where
         for task in &task_list {
             let mut command = create_command(task, config, StdioMode::Direct)?;
 
-            current_child = Some(command.spawn()?);
+            let child = command.spawn()?;
+
+            child_list.push(child);
         }
 
         Ok(())
