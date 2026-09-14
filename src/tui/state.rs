@@ -11,7 +11,7 @@ use ratatui::{
 
 use crate::{
     engine::multithread::runner::run_task_with_deps,
-    serializer::config::load_config,
+    serializer::{config::load_config, last_task::save_last_task_name},
     tui::{
         panel_bottom_left::BottomLeftPanel, panel_right::RightPanel, panel_top_left::TopLeftPanel,
         trait_panel::PanelWidget,
@@ -198,6 +198,10 @@ impl State {
                         let Ok(task) = self.top_left_panel.get_selected_task() else {
                             return;
                         };
+
+                        // TODO: Manage this error and show it to the user
+                        let _ = save_last_task_name(&task.name);
+
                         let Ok(receiver) = run_task_with_deps(task, config) else {
                             return;
                         };
@@ -397,9 +401,11 @@ impl State {
             ])
         };
 
+        const VERSION: &str = env!("CARGO_PKG_VERSION");
+
         let title_and_version_and_global_keybinds = Line::from_iter([
             Span::styled(" Grayman ", Style::default().bold()),
-            Span::styled("v0.1.2", Style::default().gray()),
+            Span::styled(format!("v{}", VERSION), Style::default().gray()),
         ]);
 
         if frame.area().width > min_width_for_hiding {

@@ -1,3 +1,4 @@
+use crate::serializer::last_task::get_last_task_name;
 use crate::tui::trait_panel::PanelWidget;
 use crate::{data::Task, serializer::config::load_config};
 use anyhow::{Context, Result};
@@ -21,7 +22,19 @@ pub struct TopLeftPanel {
 impl TopLeftPanel {
     pub fn new() -> Self {
         let mut task_list_state = ListState::default();
-        task_list_state.select_first();
+
+        // Select the first selected task on open
+        if let Ok(name) = get_last_task_name()
+            && let Ok(config) = load_config()
+        {
+            let mut task_list = config.tasks.clone();
+            task_list.sort_by(|a, b| a.name.cmp(&b.name));
+            let index = task_list.iter().position(|task| task.name == name);
+
+            task_list_state.select(index);
+        } else {
+            task_list_state.select_first()
+        }
 
         Self {
             focused: false,
