@@ -9,7 +9,11 @@ use ratatui::{
     widgets::{Block, Paragraph},
 };
 use std::{
-    sync::mpsc::{Receiver, TryRecvError},
+    sync::{
+        Arc,
+        atomic::{AtomicBool, Ordering},
+        mpsc::{Receiver, TryRecvError},
+    },
     time::{Duration, Instant},
 };
 
@@ -104,6 +108,7 @@ pub struct State {
     hide_left_panels: bool,
     task_mode: TaskMode,
     output_receiver: Option<Receiver<String>>,
+    stop_watcher_flag: Option<Arc<AtomicBool>>,
     last_output_time: Option<Instant>,
 }
 
@@ -120,6 +125,7 @@ impl State {
             hide_left_panels: false,
             task_mode: TaskMode::Run,
             output_receiver: None,
+            stop_watcher_flag: None,
             last_output_time: None,
 
             top_left_panel,
@@ -263,9 +269,21 @@ impl State {
                         // TODO: Manage this error and show it to the user
                         let _ = save_last_task_name(&task.name);
 
-                        self.output_receiver = start_watcher(task, config).ok();
+                        let Some((receiver, stop_flag)) = start_watcher(task, config).ok() else {
+                            return;
+                        };
+
+                        self.output_receiver = Some(receiver);
+                        self.stop_watcher_flag = Some(stop_flag);
                     }
                 },
+                KeyCode::Char('d') => {
+                    if let Some(flag) = &self.stop_watcher_flag {
+                        flag.store(true, Ordering::Relaxed);
+                    }
+
+                    self.stop_watcher_flag = None;
+                }
 
                 KeyCode::Char('f') => {
                     self.hide_left_panels = !self.hide_left_panels;
@@ -444,10 +462,12 @@ impl State {
                 Span::styled(format!(" {} [m]", self.task_mode), Style::default().blue()),
                 Span::from(" Select"),
                 Span::styled(" [space]", Style::default().blue()),
-                Span::from(" Start"),
-                Span::styled(" [s]", Style::default().blue()),
                 Span::from(" Clear"),
                 Span::styled(" [c]", Style::default().blue()),
+                Span::from(" Start"),
+                Span::styled(" [s]", Style::default().blue()),
+                Span::from(" Stop"),
+                Span::styled(" [d]", Style::default().blue()),
                 Span::from(" Fullscreen"),
                 Span::styled(" [f]", Style::default().blue()),
                 Span::from(" Quit"),
