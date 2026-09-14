@@ -34,24 +34,20 @@ pub fn start_watcher(task: Task, config: Config) -> Result<Receiver<String>> {
         }
     }
 
-    let mut child_list: Vec<Child> = Vec::new();
+    let mut child: Option<Child> = None;
     let task_list = get_tasks_to_execute(&task, &config)?;
     let (sender, receiver) = mpsc::channel();
 
     let mut execute = {
         let sender = sender.clone();
 
-        move |message: Option<&str>| {
-            for mut child in child_list.drain(..) {
+        move || {
+            if let Some(mut child) = child.take() {
                 let _ = child.kill(); // Kill the child
                 let _ = child.wait(); // Clean the process
             }
 
-            if let Some(message) = message {
-                let _ = sender.send(String::from(message));
-            }
-
-            for task in &task_list {
+            for (i, task) in task_list.iter().enumerate() {
                 let mut command = match create_command(task, &config, StdioMode::Piped) {
                     Ok(command) => command,
                     Err(error) => {
@@ -60,22 +56,35 @@ pub fn start_watcher(task: Task, config: Config) -> Result<Receiver<String>> {
                     }
                 };
 
-                let child = match command.spawn() {
-                    Err(error) => {
-                        let _ = sender.send(format!("{}", error));
-                        return;
+                let is_last_element = i == task_list.len() - 1;
+
+                if is_last_element {
+                    match command.spawn() {
+                        Err(error) => {
+                            let _ = sender.send(format!("{}", error));
+                            return;
+                        }
+                        Ok(mut new_child) => {
+                            let stdout = new_child.stdout.take();
+                            let stderr = new_child.stderr.take();
+
+                            let (_, _) = get_stdxxx_handles(stdout, stderr, &sender);
+
+                            child = Some(new_child);
+                        }
+                    };
+                } else {
+                    match command.status() {
+                        Err(error) => {
+                            let _ = sender.send(format!("{}", error));
+                            return;
+                        }
+                        Ok(status) if !status.success() => {
+                            break;
+                        }
+                        _ => {}
                     }
-                    Ok(mut child) => {
-                        let stdout = child.stdout.take();
-                        let stderr = child.stderr.take();
-
-                        let (_, _) = get_stdxxx_handles(stdout, stderr, &sender);
-
-                        child
-                    }
-                };
-
-                child_list.push(child);
+                }
             }
         }
     };
@@ -87,7 +96,7 @@ pub fn start_watcher(task: Task, config: Config) -> Result<Receiver<String>> {
         let _keepalive_debouncer = debouncer;
 
         // First execution of the task
-        execute(None);
+        execute();
 
         for event in debouncer_receiver {
             match event {
@@ -98,12 +107,10 @@ pub fn start_watcher(task: Task, config: Config) -> Result<Receiver<String>> {
                 Ok(event_list) => {
                     for event in event_list {
                         match event.event.kind {
-                            EventKind::Any => {}
-                            EventKind::Access(_) => {}
-                            EventKind::Create(_) => execute(Some("File creation detected")),
-                            EventKind::Modify(_) => execute(Some("File modification detected")),
-                            EventKind::Remove(_) => execute(Some("File remove detected")),
-                            EventKind::Other => {}
+                            EventKind::Any | EventKind::Access(_) | EventKind::Other => {}
+                            EventKind::Create(_) | EventKind::Modify(_) | EventKind::Remove(_) => {
+                                execute()
+                            }
                         }
                     }
                 }

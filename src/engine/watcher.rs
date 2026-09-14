@@ -43,12 +43,12 @@ where
         }
     }
 
-    let mut child_list: Vec<Child> = Vec::new();
+    let mut child: Option<Child> = None;
 
     let task_list = get_tasks_to_execute(task, config)?;
 
     let mut execute = move |message: Option<&str>| -> Result<()> {
-        for mut child in child_list.drain(..) {
+        if let Some(mut child) = child.take() {
             let _ = child.kill(); // Kill the child
             let _ = child.wait(); // Clean the process
         }
@@ -60,12 +60,18 @@ where
             })?;
         }
 
-        for task in &task_list {
+        for (i, task) in task_list.iter().enumerate() {
             let mut command = create_command(task, config, StdioMode::Direct)?;
 
-            let child = command.spawn()?;
+            if i == task_list.len() - 1 {
+                child = Some(command.spawn()?);
+            } else {
+                let status = command.status()?;
 
-            child_list.push(child);
+                if !status.success() {
+                    break;
+                }
+            }
         }
 
         Ok(())
