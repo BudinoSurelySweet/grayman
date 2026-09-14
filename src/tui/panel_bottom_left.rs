@@ -1,4 +1,7 @@
-use crate::{serializer::config::load_config, tui::trait_panel::PanelWidget};
+use crate::{
+    serializer::config::load_config,
+    tui::{style::get_style_by_status, trait_panel::PanelWidget},
+};
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{
     layout::{Alignment, Constraint, Offset},
@@ -34,7 +37,7 @@ impl PanelWidget for BottomLeftPanel {
         self.focused = value
     }
 
-    fn is_focused(&self) -> bool {
+    fn _is_focused(&self) -> bool {
         self.focused
     }
 
@@ -42,7 +45,7 @@ impl PanelWidget for BottomLeftPanel {
         self.selected = value
     }
 
-    fn is_selected(&self) -> bool {
+    fn _is_selected(&self) -> bool {
         self.selected
     }
 
@@ -77,7 +80,7 @@ impl Widget for &mut BottomLeftPanel {
     {
         Block::bordered()
             .title(Line::from(" Variables ").alignment(Alignment::Center))
-            .border_style(self.get_style())
+            .border_style(get_style_by_status(self.selected, self.focused))
             .render(area, buf);
 
         match load_config() {
@@ -101,7 +104,8 @@ impl Widget for &mut BottomLeftPanel {
                     .collect();
 
                 let widths = [Constraint::Percentage(40), Constraint::Fill(1)];
-                let table = Table::new(rows, widths).row_highlight_style(self.get_style());
+                let table = Table::new(rows, widths)
+                    .row_highlight_style(get_style_by_status(self.selected, self.focused));
 
                 StatefulWidget::render(
                     table,

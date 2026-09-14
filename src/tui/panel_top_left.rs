@@ -1,4 +1,5 @@
 use crate::serializer::last_task::get_last_task_name;
+use crate::tui::style::get_style_by_status;
 use crate::tui::trait_panel::PanelWidget;
 use crate::{data::Task, serializer::config::load_config};
 use anyhow::{Context, Result};
@@ -67,7 +68,7 @@ impl PanelWidget for TopLeftPanel {
         self.focused = value
     }
 
-    fn is_focused(&self) -> bool {
+    fn _is_focused(&self) -> bool {
         self.focused
     }
 
@@ -75,7 +76,7 @@ impl PanelWidget for TopLeftPanel {
         self.selected = value
     }
 
-    fn is_selected(&self) -> bool {
+    fn _is_selected(&self) -> bool {
         self.selected
     }
 
@@ -110,7 +111,7 @@ impl Widget for &mut TopLeftPanel {
     {
         Block::bordered()
             .title(Line::from(" Tasks ").alignment(Alignment::Center))
-            .border_style(self.get_style())
+            .border_style(get_style_by_status(self.selected, self.focused))
             .render(area, buf);
 
         match load_config() {
@@ -128,7 +129,7 @@ impl Widget for &mut TopLeftPanel {
                 StatefulWidget::render(
                     List::new(task_list)
                         .highlight_symbol(format!("{} ", symbols::DOT))
-                        .highlight_style(self.get_style()),
+                        .highlight_style(get_style_by_status(self.selected, self.focused)),
                     area + Offset::new(2, 1),
                     buf,
                     &mut self.task_list_state,

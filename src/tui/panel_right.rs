@@ -1,4 +1,7 @@
-use crate::tui::trait_panel::PanelWidget;
+use crate::tui::{
+    style::{get_color_by_status, get_style_by_status},
+    trait_panel::PanelWidget,
+};
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{
     layout::{Alignment, Margin},
@@ -59,7 +62,7 @@ impl PanelWidget for RightPanel {
         self.focused = value
     }
 
-    fn is_focused(&self) -> bool {
+    fn _is_focused(&self) -> bool {
         self.focused
     }
 
@@ -67,7 +70,7 @@ impl PanelWidget for RightPanel {
         self.selected = value
     }
 
-    fn is_selected(&self) -> bool {
+    fn _is_selected(&self) -> bool {
         self.selected
     }
 
@@ -107,13 +110,13 @@ impl Widget for &mut RightPanel {
         };
 
         let block = Block::bordered()
-            .border_style(self.get_style())
+            .border_style(get_style_by_status(self.selected, self.focused))
             .border_type(border_type)
             .padding(Padding::new(2, 2, 0, 0))
             .title(Line::from(" Console ").alignment(Alignment::Center))
             .title_bottom(
                 Line::from(bottom_title)
-                    .bg(self.get_color())
+                    .bg(get_color_by_status(self.selected, self.focused))
                     .fg(Color::Black)
                     .alignment(Alignment::Center),
             );
