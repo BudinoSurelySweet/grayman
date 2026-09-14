@@ -8,9 +8,10 @@ use ratatui::{
     text::{Line, Span, Text},
     widgets::{Block, Paragraph},
 };
+use std::{sync::mpsc::Receiver, time::Duration};
 
 use crate::{
-    engine::multithread::runner::run_task_with_deps,
+    engine::multithread::{runner::run_task_with_deps, watcher::start_watcher},
     serializer::{config::load_config, last_task::save_last_task_name},
     tui::{
         panel_bottom_left::BottomLeftPanel, panel_right::RightPanel, panel_top_left::TopLeftPanel,
@@ -97,6 +98,7 @@ pub struct State {
     selected_panel: Option<CurrentPanel>,
     hide_left_panels: bool,
     task_mode: TaskMode,
+    output_receiver: Option<Receiver<String>>,
 }
 
 impl State {
@@ -111,6 +113,7 @@ impl State {
             selected_panel: None,
             hide_left_panels: false,
             task_mode: TaskMode::Run,
+            output_receiver: None,
 
             top_left_panel,
             bottom_left_panel,
@@ -174,10 +177,18 @@ impl State {
 
     pub fn run(&mut self, mut terminal: DefaultTerminal) -> Result<()> {
         while self.running {
+            if let Some(receiver) = &self.output_receiver {
+                for s in receiver.try_iter() {
+                    self.right_panel.update_output(s);
+                }
+            }
+
             terminal.draw(|f| self.render(f))?;
 
-            if let Event::Key(key) = event::read()? {
-                self.handle_input(key);
+            if event::poll(Duration::from_millis(50))? {
+                if let Event::Key(key) = event::read()? {
+                    self.handle_input(key);
+                }
             }
         }
 
@@ -190,6 +201,7 @@ impl State {
 
             _ if self.selected_panel.is_none() => match key.code {
                 KeyCode::Char('c') => {
+                    // TODO: Add a panel for confirmation
                     self.right_panel.clear_output();
                 }
                 KeyCode::Char('s') => match self.task_mode {
@@ -202,15 +214,19 @@ impl State {
                         // TODO: Manage this error and show it to the user
                         let _ = save_last_task_name(&task.name);
 
-                        let Ok(receiver) = run_task_with_deps(task, config) else {
+                        self.output_receiver = run_task_with_deps(task, config).ok();
+                    }
+                    TaskMode::Watch => {
+                        let Ok(config) = load_config() else { return };
+                        let Ok(task) = self.top_left_panel.get_selected_task() else {
                             return;
                         };
 
-                        for s in receiver {
-                            self.right_panel.update_output(s);
-                        }
+                        // TODO: Manage this error and show it to the user
+                        let _ = save_last_task_name(&task.name);
+
+                        self.output_receiver = start_watcher(task, config).ok();
                     }
-                    TaskMode::Watch => todo!(),
                 },
 
                 KeyCode::Char('f') => {
@@ -284,7 +300,7 @@ impl State {
          */
 
         if frame.area().width < min_width || frame.area().height < min_height {
-            // Colora di rosso solo i valori che non rispettano i requisiti
+            // Setup colors
             let w_color = if frame.area().width < min_width {
                 Color::LightRed
             } else {
@@ -296,7 +312,7 @@ impl State {
                 Color::White
             };
 
-            // 2. Costruisci il testo riga per riga
+            // Setup texts
             let text = Text::from(vec![
                 Line::from("Terminal size too small"),
                 Line::from(vec![
@@ -311,13 +327,13 @@ impl State {
                         Style::default().fg(h_color),
                     ),
                 ]),
-                Line::from(""), // Spazio vuoto
+                Line::from(""),
                 Line::from("Needed at least"),
                 Line::from(format!("Width: {}  Height: {}", min_width, min_height)),
             ]);
 
-            // 3. Calcola un'area per centrare il testo verticalmente
-            let text_height = 5; // Numero di righe del nostro Text
+            // Setup the layout
+            let text_height = 5;
             let y_offset = frame.area().height.saturating_sub(text_height) / 2;
 
             let center_area = Rect {
@@ -327,10 +343,10 @@ impl State {
                 height: text_height,
             };
 
-            // 4. Renderizza il Paragrafo con allineamento orizzontale centrale
-            let p = Paragraph::new(text).alignment(Alignment::Center);
-
-            frame.render_widget(p, center_area);
+            frame.render_widget(
+                Paragraph::new(text).alignment(Alignment::Center),
+                center_area,
+            );
 
             return;
         }
@@ -405,7 +421,7 @@ impl State {
 
         let title_and_version_and_global_keybinds = Line::from_iter([
             Span::styled(" Grayman ", Style::default().bold()),
-            Span::styled(format!("v{}", VERSION), Style::default().gray()),
+            Span::styled(format!("v{}        ", VERSION), Style::default().gray()),
         ]);
 
         if frame.area().width > min_width_for_hiding {

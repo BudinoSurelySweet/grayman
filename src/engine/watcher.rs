@@ -43,7 +43,6 @@ where
         }
     }
 
-    // let mut current_child = execute_command(task, config, &emit_message)?;
     let mut current_child: Option<Child> = None;
 
     let task_list = get_tasks_to_execute(task, config)?;
