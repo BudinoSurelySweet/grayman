@@ -8,7 +8,7 @@ pub const SELECTED_COLOR: Color = Color::Green;
 pub const FOCUSED_COLOR: Color = Color::Blue;
 pub const DEFAULT_COLOR: Color = Color::Blue;
 
-pub const HIGHLIGHT_COLOR: Color = Color::Red;
+pub const HIGHLIGHT_STYLE: Style = Style::new().bold().blue();
 
 pub fn get_style_by_status(selected: bool, focused: bool) -> Style {
     if selected {

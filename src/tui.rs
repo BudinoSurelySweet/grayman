@@ -3,5 +3,7 @@ mod env_editor;
 mod output_viewer;
 mod state;
 mod style;
+mod task_editor;
+mod task_manager;
 mod task_selector;
 mod trait_panel;

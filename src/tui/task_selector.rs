@@ -1,5 +1,6 @@
 use crate::serializer::last_task::get_last_task_name;
-use crate::tui::style::{HIGHLIGHT_COLOR, get_style_by_status};
+use crate::tui::style::{HIGHLIGHT_STYLE, get_style_by_status};
+use crate::tui::task_manager::{TakeTaskManagerRequest, TaskManagerRequest};
 use crate::tui::trait_panel::PanelWidget;
 use crate::{data::Task, serializer::config::load_config};
 use anyhow::{Context, Result};
@@ -17,6 +18,7 @@ pub struct TaskSelector {
 
     focused: bool,
     selected: bool,
+    task_manager_request: Option<TaskManagerRequest>,
 }
 
 impl TaskSelector {
@@ -40,6 +42,7 @@ impl TaskSelector {
             focused: false,
             selected: false,
             task_list_state,
+            task_manager_request: None,
         }
     }
 
@@ -67,7 +70,7 @@ impl PanelWidget for TaskSelector {
         self.focused = value
     }
 
-    fn _is_focused(&self) -> bool {
+    fn is_focused(&self) -> bool {
         self.focused
     }
 
@@ -75,7 +78,7 @@ impl PanelWidget for TaskSelector {
         self.selected = value
     }
 
-    fn _is_selected(&self) -> bool {
+    fn is_selected(&self) -> bool {
         self.selected
     }
 
@@ -87,6 +90,11 @@ impl PanelWidget for TaskSelector {
             KeyCode::Char('j') | KeyCode::Down => {
                 self.task_list_state.select_next();
             }
+            KeyCode::Char(' ') => {
+                if let Ok(task) = self.get_selected_task() {
+                    self.task_manager_request = Some(TaskManagerRequest::OpenEditor(task));
+                }
+            }
             _ => {}
         }
     }
@@ -94,11 +102,11 @@ impl PanelWidget for TaskSelector {
     fn get_available_keybinds(&self) -> Line<'static> {
         Line::from_iter([
             Span::from(" Exit"),
-            Span::styled(" [esc]", HIGHLIGHT_COLOR),
+            Span::styled(" [esc]", HIGHLIGHT_STYLE),
             Span::from(" Down"),
-            Span::styled(" [j/Down]", HIGHLIGHT_COLOR),
+            Span::styled(" [j/Down]", HIGHLIGHT_STYLE),
             Span::from(" Up"),
-            Span::styled(" [k/Up] ", HIGHLIGHT_COLOR),
+            Span::styled(" [k/Up] ", HIGHLIGHT_STYLE),
         ])
     }
 }
@@ -135,5 +143,11 @@ impl Widget for &mut TaskSelector {
                 );
             }
         }
+    }
+}
+
+impl TakeTaskManagerRequest for TaskSelector {
+    fn take_request(&mut self) -> Option<TaskManagerRequest> {
+        self.task_manager_request.take()
     }
 }

@@ -1,7 +1,7 @@
 use crate::{
     serializer::config::load_config,
     tui::{
-        style::{HIGHLIGHT_COLOR, get_style_by_status},
+        style::{HIGHLIGHT_STYLE, get_style_by_status},
         trait_panel::PanelWidget,
     },
 };
@@ -39,7 +39,7 @@ impl PanelWidget for EnvEditor {
         self.focused = value
     }
 
-    fn _is_focused(&self) -> bool {
+    fn is_focused(&self) -> bool {
         self.focused
     }
 
@@ -47,7 +47,7 @@ impl PanelWidget for EnvEditor {
         self.selected = value
     }
 
-    fn _is_selected(&self) -> bool {
+    fn is_selected(&self) -> bool {
         self.selected
     }
 
@@ -66,11 +66,11 @@ impl PanelWidget for EnvEditor {
     fn get_available_keybinds(&self) -> Line<'static> {
         Line::from_iter([
             Span::from(" Exit"),
-            Span::styled(" [esc]", HIGHLIGHT_COLOR),
+            Span::styled(" [esc]", HIGHLIGHT_STYLE),
             Span::from(" Down"),
-            Span::styled(" [j/Down]", HIGHLIGHT_COLOR),
+            Span::styled(" [j/Down]", HIGHLIGHT_STYLE),
             Span::from(" Up"),
-            Span::styled(" [k/Up] ", HIGHLIGHT_COLOR),
+            Span::styled(" [k/Up] ", HIGHLIGHT_STYLE),
         ])
     }
 }

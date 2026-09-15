@@ -4,11 +4,11 @@ use ratatui::text::Line;
 pub trait PanelWidget {
     fn set_focused(&mut self, value: bool);
 
-    fn _is_focused(&self) -> bool;
+    fn is_focused(&self) -> bool;
 
     fn set_selected(&mut self, value: bool);
 
-    fn _is_selected(&self) -> bool;
+    fn is_selected(&self) -> bool;
 
     fn handle_input(&mut self, key: KeyEvent);
 

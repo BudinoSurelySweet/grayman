@@ -3,8 +3,8 @@ use crate::{
     engine::multithread::{runner::run_task_with_deps, watcher::start_watcher},
     serializer::{config::load_config, last_task::save_last_task_name},
     tui::{
-        env_editor::EnvEditor, output_viewer::OutputViewer, task_selector::TaskSelector,
-        trait_panel::PanelWidget,
+        env_editor::EnvEditor, output_viewer::OutputViewer, style::HIGHLIGHT_STYLE,
+        task_manager::TaskManager, trait_panel::PanelWidget,
     },
 };
 use anyhow::Result;
@@ -101,7 +101,7 @@ impl Panel {
 pub struct State {
     running: bool,
 
-    task_selector: TaskSelector,
+    task_manager: TaskManager,
     env_editor: EnvEditor,
     output_viewer: OutputViewer,
 
@@ -116,7 +116,7 @@ pub struct State {
 
 impl State {
     pub fn new() -> Self {
-        let task_selector = TaskSelector::new();
+        let task_manager = TaskManager::new();
         let env_editor = EnvEditor::new();
         let output_viewer = OutputViewer::new();
 
@@ -130,7 +130,7 @@ impl State {
             stop_watcher_flag: None,
             last_output_time: None,
 
-            task_selector,
+            task_manager,
             env_editor,
             output_viewer,
         };
@@ -142,7 +142,7 @@ impl State {
 
     fn set_focused_panel_focus(&mut self, value: bool) {
         match self.focused_panel {
-            Panel::TopLeft => self.task_selector.set_focused(value),
+            Panel::TopLeft => self.task_manager.set_focused(value),
             Panel::BottomLeft => self.env_editor.set_focused(value),
             Panel::Right => self.output_viewer.set_focused(value),
         }
@@ -169,7 +169,7 @@ impl State {
     fn deselect_focused_panel(&mut self) {
         if let Some(panel) = &self.selected_panel {
             match panel {
-                Panel::TopLeft => self.task_selector.set_selected(false),
+                Panel::TopLeft => self.task_manager.set_selected(false),
                 Panel::BottomLeft => self.env_editor.set_selected(false),
                 Panel::Right => self.output_viewer.set_selected(false),
             }
@@ -181,7 +181,7 @@ impl State {
     fn select_focused_panel(&mut self) {
         if self.selected_panel.is_none() {
             match self.focused_panel {
-                Panel::TopLeft => self.task_selector.set_selected(true),
+                Panel::TopLeft => self.task_manager.set_selected(true),
                 Panel::BottomLeft => self.env_editor.set_selected(true),
                 Panel::Right => self.output_viewer.set_selected(true),
             }
@@ -263,7 +263,7 @@ impl State {
                     match self.task_mode {
                         TaskMode::Run => {
                             let Ok(config) = load_config() else { return };
-                            let Ok(task) = self.task_selector.get_selected_task() else {
+                            let Ok(task) = self.task_manager.get_selected_task() else {
                                 return;
                             };
 
@@ -274,7 +274,7 @@ impl State {
                         }
                         TaskMode::Watch => {
                             let Ok(config) = load_config() else { return };
-                            let Ok(task) = self.task_selector.get_selected_task() else {
+                            let Ok(task) = self.task_manager.get_selected_task() else {
                                 return;
                             };
 
@@ -343,7 +343,7 @@ impl State {
 
             // Passthrough
             _ => match &self.selected_panel {
-                Some(Panel::TopLeft) => self.task_selector.handle_input(key),
+                Some(Panel::TopLeft) => self.task_manager.handle_input(key),
                 Some(Panel::BottomLeft) => self.env_editor.handle_input(key),
                 Some(Panel::Right) => self.output_viewer.handle_input(key),
                 None => {}
@@ -451,13 +451,13 @@ impl State {
                 frame.render_widget(bottom_block, bottom_left);
             }
         } else {
-            frame.render_widget(&mut self.task_selector, top_left);
+            frame.render_widget(&mut self.task_manager, top_left);
             frame.render_widget(&mut self.env_editor, bottom_left);
         }
 
         let available_keybinds = if let Some(panel) = &self.selected_panel {
             match panel {
-                Panel::TopLeft => self.task_selector.get_available_keybinds(),
+                Panel::TopLeft => self.task_manager.get_available_keybinds(),
                 Panel::BottomLeft => self.env_editor.get_available_keybinds(),
                 Panel::Right => self.output_viewer.get_available_keybinds(),
             }
@@ -470,17 +470,17 @@ impl State {
 
             Line::from_iter([
                 Span::from(" Mode"),
-                Span::styled(format!(" {} [m]", self.task_mode), Style::default().blue()),
+                Span::styled(format!(" {} [m]", self.task_mode), HIGHLIGHT_STYLE),
                 Span::from(start_stop_label),
-                Span::styled(" [s]", Style::default().blue()),
+                Span::styled(" [s]", HIGHLIGHT_STYLE),
                 Span::from(" Clear"),
-                Span::styled(" [c]", Style::default().blue()),
+                Span::styled(" [c]", HIGHLIGHT_STYLE),
                 Span::from(" Select"),
-                Span::styled(" [space]", Style::default().blue()),
+                Span::styled(" [space]", HIGHLIGHT_STYLE),
                 Span::from(" Fullscreen"),
-                Span::styled(" [f]", Style::default().blue()),
+                Span::styled(" [f]", HIGHLIGHT_STYLE),
                 Span::from(" Quit"),
-                Span::styled(" [q] ", Style::default().blue()),
+                Span::styled(" [q] ", HIGHLIGHT_STYLE),
             ])
         };
 
