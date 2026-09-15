@@ -1,24 +1,26 @@
 use crate::{
     serializer::config::load_config,
-    tui::{style::get_style_by_status, trait_panel::PanelWidget},
+    tui::{
+        style::{HIGHLIGHT_COLOR, get_style_by_status},
+        trait_panel::PanelWidget,
+    },
 };
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{
     layout::{Alignment, Constraint, Offset},
     prelude::{Buffer, Rect},
-    style::Style,
     text::{Line, Span},
     widgets::{Block, Paragraph, Row, StatefulWidget, Table, TableState, Widget, Wrap},
 };
 
-pub struct BottomLeftPanel {
+pub struct EnvEditor {
     pub variable_table_state: TableState,
 
     focused: bool,
     selected: bool,
 }
 
-impl BottomLeftPanel {
+impl EnvEditor {
     pub fn new() -> Self {
         let mut variable_table_state = TableState::default();
         variable_table_state.select_first();
@@ -32,7 +34,7 @@ impl BottomLeftPanel {
     }
 }
 
-impl PanelWidget for BottomLeftPanel {
+impl PanelWidget for EnvEditor {
     fn set_focused(&mut self, value: bool) {
         self.focused = value
     }
@@ -64,22 +66,22 @@ impl PanelWidget for BottomLeftPanel {
     fn get_available_keybinds(&self) -> Line<'static> {
         Line::from_iter([
             Span::from(" Exit"),
-            Span::styled(" [esc]", Style::default().blue()),
+            Span::styled(" [esc]", HIGHLIGHT_COLOR),
             Span::from(" Down"),
-            Span::styled(" [j/Down]", Style::default().blue()),
+            Span::styled(" [j/Down]", HIGHLIGHT_COLOR),
             Span::from(" Up"),
-            Span::styled(" [k/Up] ", Style::default().blue()),
+            Span::styled(" [k/Up] ", HIGHLIGHT_COLOR),
         ])
     }
 }
 
-impl Widget for &mut BottomLeftPanel {
+impl Widget for &mut EnvEditor {
     fn render(self, area: Rect, buf: &mut Buffer)
     where
         Self: Sized,
     {
         Block::bordered()
-            .title(Line::from(" Variables ").alignment(Alignment::Center))
+            .title(Line::from(" Env ").alignment(Alignment::Center))
             .border_style(get_style_by_status(self.selected, self.focused))
             .render(area, buf);
 

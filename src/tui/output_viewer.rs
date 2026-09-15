@@ -1,12 +1,12 @@
 use crate::tui::{
-    style::{get_color_by_status, get_style_by_status},
+    style::{HIGHLIGHT_COLOR, get_color_by_status, get_style_by_status},
     trait_panel::PanelWidget,
 };
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{
     layout::{Alignment, Margin},
     prelude::{Buffer, Rect},
-    style::{Color, Style, Stylize},
+    style::{Color, Stylize},
     text::{Line, Span},
     widgets::{
         Block, BorderType, Padding, Paragraph, Scrollbar, ScrollbarOrientation, ScrollbarState,
@@ -15,15 +15,15 @@ use ratatui::{
 };
 use std::collections::VecDeque;
 
-pub enum RightPanelStatus {
+pub enum OutputViewerStatus {
     Off,
     Watching,
     Executing,
 }
 
-pub struct RightPanel {
+pub struct OutputViewer {
     pub max_output_len: usize,
-    pub status: RightPanelStatus,
+    pub status: OutputViewerStatus,
 
     output: VecDeque<String>,
     scroll: u16,
@@ -31,7 +31,7 @@ pub struct RightPanel {
     selected: bool,
 }
 
-impl RightPanel {
+impl OutputViewer {
     pub fn new() -> Self {
         Self {
             focused: false,
@@ -39,7 +39,7 @@ impl RightPanel {
             output: VecDeque::new(),
             scroll: 0,
             max_output_len: 2000,
-            status: RightPanelStatus::Off,
+            status: OutputViewerStatus::Off,
         }
     }
 
@@ -57,7 +57,7 @@ impl RightPanel {
     }
 }
 
-impl PanelWidget for RightPanel {
+impl PanelWidget for OutputViewer {
     fn set_focused(&mut self, value: bool) {
         self.focused = value
     }
@@ -89,31 +89,31 @@ impl PanelWidget for RightPanel {
     fn get_available_keybinds(&self) -> Line<'static> {
         Line::from_iter([
             Span::from(" Exit"),
-            Span::styled(" [esc]", Style::default().blue()),
+            Span::styled(" [esc]", HIGHLIGHT_COLOR),
             Span::from(" Down"),
-            Span::styled(" [j/Down]", Style::default().blue()),
+            Span::styled(" [j/Down]", HIGHLIGHT_COLOR),
             Span::from(" Up"),
-            Span::styled(" [k/Up] ", Style::default().blue()),
+            Span::styled(" [k/Up] ", HIGHLIGHT_COLOR),
         ])
     }
 }
 
-impl Widget for &mut RightPanel {
+impl Widget for &mut OutputViewer {
     fn render(self, area: Rect, buf: &mut Buffer)
     where
         Self: Sized,
     {
         let (bottom_title, border_type) = match self.status {
-            RightPanelStatus::Off => ("", BorderType::Plain),
-            RightPanelStatus::Watching => (" Watching ", BorderType::HeavyDoubleDashed),
-            RightPanelStatus::Executing => (" Executing ", BorderType::HeavyDoubleDashed),
+            OutputViewerStatus::Off => ("", BorderType::Plain),
+            OutputViewerStatus::Watching => (" Watching ", BorderType::HeavyDoubleDashed),
+            OutputViewerStatus::Executing => (" Executing ", BorderType::HeavyDoubleDashed),
         };
 
         let block = Block::bordered()
             .border_style(get_style_by_status(self.selected, self.focused))
             .border_type(border_type)
             .padding(Padding::new(2, 2, 0, 0))
-            .title(Line::from(" Console ").alignment(Alignment::Center))
+            .title(Line::from(" Output ").alignment(Alignment::Center))
             .title_bottom(
                 Line::from(bottom_title)
                     .bg(get_color_by_status(self.selected, self.focused))

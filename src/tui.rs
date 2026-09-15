@@ -1,7 +1,7 @@
 pub mod entry_point;
-mod panel_bottom_left;
-mod panel_right;
-mod panel_top_left;
+mod env_editor;
+mod output_viewer;
 mod state;
 mod style;
+mod task_selector;
 mod trait_panel;

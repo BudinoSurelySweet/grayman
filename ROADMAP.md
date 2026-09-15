@@ -4,11 +4,11 @@
 
 ## Now
 
+- Add a way to add and remove tasks in the TUI's tasks panel.
 - Refining the UX of the TUI.
 
 ## Next
 
-- Add a way to add and remove tasks in the TUI's tasks panel.
 - Add a way to add and remove variables in the TUI's variables panel.
 
 ## Later

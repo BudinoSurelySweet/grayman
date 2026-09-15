@@ -1,3 +1,12 @@
+use super::output_viewer::OutputViewerStatus;
+use crate::{
+    engine::multithread::{runner::run_task_with_deps, watcher::start_watcher},
+    serializer::{config::load_config, last_task::save_last_task_name},
+    tui::{
+        env_editor::EnvEditor, output_viewer::OutputViewer, task_selector::TaskSelector,
+        trait_panel::PanelWidget,
+    },
+};
 use anyhow::Result;
 use core::fmt;
 use crossterm::event::{self, Event, KeyCode, KeyEvent};
@@ -16,17 +25,6 @@ use std::{
     },
     time::{Duration, Instant},
 };
-
-use crate::{
-    engine::multithread::{runner::run_task_with_deps, watcher::start_watcher},
-    serializer::{config::load_config, last_task::save_last_task_name},
-    tui::{
-        panel_bottom_left::BottomLeftPanel, panel_right::RightPanel, panel_top_left::TopLeftPanel,
-        trait_panel::PanelWidget,
-    },
-};
-
-use super::panel_right::RightPanelStatus;
 
 enum TaskMode {
     Run,
@@ -49,62 +47,66 @@ enum PanelJumpDirection {
     Right,
 }
 
-#[derive(Clone)]
-enum CurrentPanel {
+#[derive(Clone, PartialEq)]
+enum Panel {
     TopLeft,
     BottomLeft,
     Right,
 }
 
-impl CurrentPanel {
+impl Panel {
     fn next(&mut self) {
         *self = match self {
-            CurrentPanel::TopLeft => CurrentPanel::BottomLeft,
-            CurrentPanel::BottomLeft => CurrentPanel::Right,
-            CurrentPanel::Right => CurrentPanel::TopLeft,
+            Panel::TopLeft => Panel::BottomLeft,
+            Panel::BottomLeft => Panel::Right,
+            Panel::Right => Panel::TopLeft,
         };
     }
 
     fn previous(&mut self) {
         *self = match self {
-            CurrentPanel::TopLeft => CurrentPanel::Right,
-            CurrentPanel::BottomLeft => CurrentPanel::TopLeft,
-            CurrentPanel::Right => CurrentPanel::BottomLeft,
+            Panel::TopLeft => Panel::Right,
+            Panel::BottomLeft => Panel::TopLeft,
+            Panel::Right => Panel::BottomLeft,
         };
     }
 
     fn jump(&mut self, direction: PanelJumpDirection) {
-        type P = CurrentPanel;
+        type P = Panel;
         type D = PanelJumpDirection;
 
-        let dont_jump = self.clone();
+        let panel = match (&self, direction) {
+            (P::TopLeft, D::Left) => None,
+            (P::TopLeft, D::Right) => Some(Panel::Right),
+            (P::TopLeft, D::Up) => None,
+            (P::TopLeft, D::Down) => Some(Panel::BottomLeft),
 
-        *self = match (&self, direction) {
-            (P::TopLeft, D::Left) => dont_jump,
-            (P::TopLeft, D::Right) => CurrentPanel::Right,
-            (P::TopLeft, D::Up) => dont_jump,
-            (P::TopLeft, D::Down) => CurrentPanel::BottomLeft,
-            (P::BottomLeft, D::Left) => dont_jump,
-            (P::BottomLeft, D::Right) => CurrentPanel::Right,
-            (P::BottomLeft, D::Up) => CurrentPanel::TopLeft,
-            (P::BottomLeft, D::Down) => dont_jump,
-            (P::Right, D::Left) => CurrentPanel::TopLeft,
-            (P::Right, D::Right) => dont_jump,
-            (P::Right, D::Up) => dont_jump,
-            (P::Right, D::Down) => dont_jump,
+            (P::BottomLeft, D::Left) => None,
+            (P::BottomLeft, D::Right) => Some(Panel::Right),
+            (P::BottomLeft, D::Up) => Some(Panel::TopLeft),
+            (P::BottomLeft, D::Down) => None,
+
+            (P::Right, D::Left) => Some(Panel::TopLeft),
+            (P::Right, D::Right) => None,
+            (P::Right, D::Up) => None,
+            (P::Right, D::Down) => None,
         };
+
+        let Some(panel) = panel else { return };
+
+        *self = panel;
     }
 }
 
 pub struct State {
     running: bool,
 
-    top_left_panel: TopLeftPanel,
-    bottom_left_panel: BottomLeftPanel,
-    right_panel: RightPanel,
+    task_selector: TaskSelector,
+    env_editor: EnvEditor,
+    output_viewer: OutputViewer,
 
-    focused_panel: CurrentPanel,
-    selected_panel: Option<CurrentPanel>,
+    focused_panel: Panel,
+    selected_panel: Option<Panel>,
     hide_left_panels: bool,
     task_mode: TaskMode,
     output_receiver: Option<Receiver<String>>,
@@ -114,13 +116,13 @@ pub struct State {
 
 impl State {
     pub fn new() -> Self {
-        let top_left_panel = TopLeftPanel::new();
-        let bottom_left_panel = BottomLeftPanel::new();
-        let right_panel = RightPanel::new();
+        let task_selector = TaskSelector::new();
+        let env_editor = EnvEditor::new();
+        let output_viewer = OutputViewer::new();
 
         let mut state = Self {
             running: true,
-            focused_panel: CurrentPanel::TopLeft,
+            focused_panel: Panel::TopLeft,
             selected_panel: None,
             hide_left_panels: false,
             task_mode: TaskMode::Run,
@@ -128,9 +130,9 @@ impl State {
             stop_watcher_flag: None,
             last_output_time: None,
 
-            top_left_panel,
-            bottom_left_panel,
-            right_panel,
+            task_selector,
+            env_editor,
+            output_viewer,
         };
 
         state.set_focused_panel_focus(true);
@@ -140,9 +142,9 @@ impl State {
 
     fn set_focused_panel_focus(&mut self, value: bool) {
         match self.focused_panel {
-            CurrentPanel::TopLeft => self.top_left_panel.set_focused(value),
-            CurrentPanel::BottomLeft => self.bottom_left_panel.set_focused(value),
-            CurrentPanel::Right => self.right_panel.set_focused(value),
+            Panel::TopLeft => self.task_selector.set_focused(value),
+            Panel::BottomLeft => self.env_editor.set_focused(value),
+            Panel::Right => self.output_viewer.set_focused(value),
         }
     }
 
@@ -164,24 +166,24 @@ impl State {
         self.set_focused_panel_focus(true);
     }
 
-    fn deselect_panel(&mut self) {
+    fn deselect_focused_panel(&mut self) {
         if let Some(panel) = &self.selected_panel {
             match panel {
-                CurrentPanel::TopLeft => self.top_left_panel.set_selected(false),
-                CurrentPanel::BottomLeft => self.bottom_left_panel.set_selected(false),
-                CurrentPanel::Right => self.right_panel.set_selected(false),
+                Panel::TopLeft => self.task_selector.set_selected(false),
+                Panel::BottomLeft => self.env_editor.set_selected(false),
+                Panel::Right => self.output_viewer.set_selected(false),
             }
 
             self.selected_panel = None;
         }
     }
 
-    fn select_panel(&mut self) {
+    fn select_focused_panel(&mut self) {
         if self.selected_panel.is_none() {
             match self.focused_panel {
-                CurrentPanel::TopLeft => self.top_left_panel.set_selected(true),
-                CurrentPanel::BottomLeft => self.bottom_left_panel.set_selected(true),
-                CurrentPanel::Right => self.right_panel.set_selected(true),
+                Panel::TopLeft => self.task_selector.set_selected(true),
+                Panel::BottomLeft => self.env_editor.set_selected(true),
+                Panel::Right => self.output_viewer.set_selected(true),
             }
 
             self.selected_panel = Some(self.focused_panel.clone())
@@ -202,7 +204,7 @@ impl State {
 
                         if should_turn_off {
                             self.last_output_time = None;
-                            self.right_panel.status = RightPanelStatus::Off;
+                            self.output_viewer.status = OutputViewerStatus::Off;
                             self.output_receiver = None;
                         }
                     }
@@ -211,18 +213,18 @@ impl State {
                             && last_output_time.elapsed() > Duration::from_millis(WAIT_TIME)
                         {
                             self.last_output_time = None;
-                            self.right_panel.status = RightPanelStatus::Watching;
+                            self.output_viewer.status = OutputViewerStatus::Watching;
                         }
                     }
                     Ok(first_msg) => {
                         self.last_output_time = Some(Instant::now());
-                        self.right_panel.update_output(first_msg);
+                        self.output_viewer.update_output(first_msg);
 
                         for s in receiver.try_iter() {
-                            self.right_panel.update_output(s);
+                            self.output_viewer.update_output(s);
                         }
 
-                        self.right_panel.status = RightPanelStatus::Executing;
+                        self.output_viewer.status = OutputViewerStatus::Executing;
                     }
                 };
             }
@@ -246,7 +248,7 @@ impl State {
             _ if self.selected_panel.is_none() => match key.code {
                 KeyCode::Char('c') => {
                     // TODO: Add a panel for confirmation
-                    self.right_panel.clear_output();
+                    self.output_viewer.clear_output();
                 }
                 KeyCode::Char('s') => {
                     // Stop the watcher if it's on
@@ -261,7 +263,7 @@ impl State {
                     match self.task_mode {
                         TaskMode::Run => {
                             let Ok(config) = load_config() else { return };
-                            let Ok(task) = self.top_left_panel.get_selected_task() else {
+                            let Ok(task) = self.task_selector.get_selected_task() else {
                                 return;
                             };
 
@@ -272,7 +274,7 @@ impl State {
                         }
                         TaskMode::Watch => {
                             let Ok(config) = load_config() else { return };
-                            let Ok(task) = self.top_left_panel.get_selected_task() else {
+                            let Ok(task) = self.task_selector.get_selected_task() else {
                                 return;
                             };
 
@@ -294,9 +296,7 @@ impl State {
                     self.hide_left_panels = !self.hide_left_panels;
 
                     match self.focused_panel {
-                        CurrentPanel::TopLeft | CurrentPanel::BottomLeft
-                            if self.hide_left_panels =>
-                        {
+                        Panel::TopLeft | Panel::BottomLeft if self.hide_left_panels => {
                             self.jump_focus(PanelJumpDirection::Right)
                         }
                         _ => {}
@@ -333,20 +333,20 @@ impl State {
                 }
 
                 // Select the current panel
-                KeyCode::Char(' ') => self.select_panel(),
+                KeyCode::Char(' ') => self.select_focused_panel(),
 
                 _ => {}
             },
 
             // Deselect the current panel
-            KeyCode::Esc => self.deselect_panel(),
+            KeyCode::Esc => self.deselect_focused_panel(),
 
             // Passthrough
             _ => match &self.selected_panel {
-                Some(CurrentPanel::TopLeft) => self.top_left_panel.handle_input(key),
-                Some(CurrentPanel::BottomLeft) => self.bottom_left_panel.handle_input(key),
-                Some(CurrentPanel::Right) => self.right_panel.handle_input(key),
-                _ => {}
+                Some(Panel::TopLeft) => self.task_selector.handle_input(key),
+                Some(Panel::BottomLeft) => self.env_editor.handle_input(key),
+                Some(Panel::Right) => self.output_viewer.handle_input(key),
+                None => {}
             },
         }
     }
@@ -451,15 +451,15 @@ impl State {
                 frame.render_widget(bottom_block, bottom_left);
             }
         } else {
-            frame.render_widget(&mut self.top_left_panel, top_left);
-            frame.render_widget(&mut self.bottom_left_panel, bottom_left);
+            frame.render_widget(&mut self.task_selector, top_left);
+            frame.render_widget(&mut self.env_editor, bottom_left);
         }
 
         let available_keybinds = if let Some(panel) = &self.selected_panel {
             match panel {
-                CurrentPanel::TopLeft => self.top_left_panel.get_available_keybinds(),
-                CurrentPanel::BottomLeft => self.bottom_left_panel.get_available_keybinds(),
-                CurrentPanel::Right => self.right_panel.get_available_keybinds(),
+                Panel::TopLeft => self.task_selector.get_available_keybinds(),
+                Panel::BottomLeft => self.env_editor.get_available_keybinds(),
+                Panel::Right => self.output_viewer.get_available_keybinds(),
             }
         } else {
             let start_stop_label = if self.stop_watcher_flag.is_some() {
@@ -496,6 +496,6 @@ impl State {
         }
 
         frame.render_widget(title_and_version_and_global_keybinds, bottom);
-        frame.render_widget(&mut self.right_panel, right);
+        frame.render_widget(&mut self.output_viewer, right);
     }
 }

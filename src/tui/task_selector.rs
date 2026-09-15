@@ -1,5 +1,5 @@
 use crate::serializer::last_task::get_last_task_name;
-use crate::tui::style::get_style_by_status;
+use crate::tui::style::{HIGHLIGHT_COLOR, get_style_by_status};
 use crate::tui::trait_panel::PanelWidget;
 use crate::{data::Task, serializer::config::load_config};
 use anyhow::{Context, Result};
@@ -7,20 +7,19 @@ use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{
     layout::{Alignment, Offset},
     prelude::{Buffer, Rect, Span},
-    style::Style,
     symbols,
     text::Line,
     widgets::{Block, List, ListState, Paragraph, StatefulWidget, Widget, Wrap},
 };
 
-pub struct TopLeftPanel {
+pub struct TaskSelector {
     pub task_list_state: ListState,
 
     focused: bool,
     selected: bool,
 }
 
-impl TopLeftPanel {
+impl TaskSelector {
     pub fn new() -> Self {
         let mut task_list_state = ListState::default();
 
@@ -63,7 +62,7 @@ impl TopLeftPanel {
     }
 }
 
-impl PanelWidget for TopLeftPanel {
+impl PanelWidget for TaskSelector {
     fn set_focused(&mut self, value: bool) {
         self.focused = value
     }
@@ -95,16 +94,16 @@ impl PanelWidget for TopLeftPanel {
     fn get_available_keybinds(&self) -> Line<'static> {
         Line::from_iter([
             Span::from(" Exit"),
-            Span::styled(" [esc]", Style::default().blue()),
+            Span::styled(" [esc]", HIGHLIGHT_COLOR),
             Span::from(" Down"),
-            Span::styled(" [j/Down]", Style::default().blue()),
+            Span::styled(" [j/Down]", HIGHLIGHT_COLOR),
             Span::from(" Up"),
-            Span::styled(" [k/Up] ", Style::default().blue()),
+            Span::styled(" [k/Up] ", HIGHLIGHT_COLOR),
         ])
     }
 }
 
-impl Widget for &mut TopLeftPanel {
+impl Widget for &mut TaskSelector {
     fn render(self, area: Rect, buf: &mut Buffer)
     where
         Self: Sized,
