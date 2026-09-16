@@ -70,7 +70,7 @@ impl PanelWidget for TaskSelector {
         self.focused = value
     }
 
-    fn is_focused(&self) -> bool {
+    fn _is_focused(&self) -> bool {
         self.focused
     }
 
@@ -78,8 +78,12 @@ impl PanelWidget for TaskSelector {
         self.selected = value
     }
 
-    fn is_selected(&self) -> bool {
+    fn _is_selected(&self) -> bool {
         self.selected
+    }
+
+    fn take_keybinds_control(&self) -> Option<Vec<KeyCode>> {
+        None
     }
 
     fn handle_input(&mut self, key: KeyEvent) {
@@ -90,7 +94,7 @@ impl PanelWidget for TaskSelector {
             KeyCode::Char('j') | KeyCode::Down => {
                 self.task_list_state.select_next();
             }
-            KeyCode::Char(' ') => {
+            KeyCode::Char('e') => {
                 if let Ok(task) = self.get_selected_task() {
                     self.task_manager_request = Some(TaskManagerRequest::OpenEditor(task));
                 }
@@ -103,6 +107,8 @@ impl PanelWidget for TaskSelector {
         Line::from_iter([
             Span::from(" Exit"),
             Span::styled(" [esc]", HIGHLIGHT_STYLE),
+            Span::from(" Edit"),
+            Span::styled(" [e]", HIGHLIGHT_STYLE),
             Span::from(" Down"),
             Span::styled(" [j/Down]", HIGHLIGHT_STYLE),
             Span::from(" Up"),

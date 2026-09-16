@@ -12,7 +12,7 @@ use ratatui::{
     layout::Alignment,
     prelude::{Buffer, Rect},
     text::{Line, Span},
-    widgets::{Block, Widget},
+    widgets::{Block, Padding, Widget},
 };
 
 pub struct TaskEditor {
@@ -39,7 +39,7 @@ impl PanelWidget for TaskEditor {
         self.focused = value
     }
 
-    fn is_focused(&self) -> bool {
+    fn _is_focused(&self) -> bool {
         self.focused
     }
 
@@ -47,22 +47,30 @@ impl PanelWidget for TaskEditor {
         self.selected = value
     }
 
-    fn is_selected(&self) -> bool {
+    fn _is_selected(&self) -> bool {
         self.selected
+    }
+
+    fn take_keybinds_control(&self) -> Option<Vec<KeyCode>> {
+        if self.selected {
+            return Some(vec![KeyCode::Esc]);
+        }
+
+        None
     }
 
     fn handle_input(&mut self, key: KeyEvent) {
         match key.code {
-            // TODO: Change this keybind
-            KeyCode::Char('b') => {
-                self.task_manager_request = Some(TaskManagerRequest::OpenSelector)
-            }
+            KeyCode::Esc => self.task_manager_request = Some(TaskManagerRequest::OpenSelector),
             _ => {}
         }
     }
 
     fn get_available_keybinds(&self) -> Line<'static> {
-        Line::from_iter([Span::from(""), Span::styled("", HIGHLIGHT_STYLE)])
+        Line::from_iter([
+            Span::from(" Exit"),
+            Span::styled(" [esc] ", HIGHLIGHT_STYLE),
+        ])
     }
 }
 
@@ -71,10 +79,14 @@ impl Widget for &mut TaskEditor {
     where
         Self: Sized,
     {
-        Block::bordered()
+        let block = Block::bordered()
             .title(Line::from(" Editor ").alignment(Alignment::Center))
             .border_style(get_style_by_status(self.selected, self.focused))
-            .render(area, buf);
+            .padding(Padding::new(1, 1, 0, 0));
+
+        let _inner_area = block.inner(area);
+
+        block.render(area, buf);
     }
 }
 

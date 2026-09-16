@@ -3,7 +3,7 @@ use crate::{
     tui::{task_editor::TaskEditor, task_selector::TaskSelector, trait_panel::PanelWidget},
 };
 use anyhow::Result;
-use crossterm::event::KeyEvent;
+use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{
     prelude::{Buffer, Rect},
     text::Line,
@@ -55,19 +55,22 @@ impl TaskManager {
         self.selector.get_selected_task()
     }
 
-    fn change_view(&mut self, view: TaskManagerView) {
-        self.view = view;
+    fn change_view(&mut self, _view: TaskManagerView) {
+        // FIXME: Blocked because the other views are not ready to be used.
+        return;
 
-        match self.view {
-            TaskManagerView::Selector => {
-                self.selector.set_focused(self.is_focused());
-                self.selector.set_selected(self.is_selected());
-            }
-            TaskManagerView::Editor => {
-                self.editor.set_focused(self.is_focused());
-                self.editor.set_selected(self.is_selected());
-            }
-        }
+        // self.view = view;
+
+        // match self.view {
+        //     TaskManagerView::Selector => {
+        //         self.selector.set_focused(self.is_focused());
+        //         self.selector.set_selected(self.is_selected());
+        //     }
+        //     TaskManagerView::Editor => {
+        //         self.editor.set_focused(self.is_focused());
+        //         self.editor.set_selected(self.is_selected());
+        //     }
+        // }
     }
 
     fn handle_request(&mut self, request: TaskManagerRequest) {
@@ -94,7 +97,7 @@ impl PanelWidget for TaskManager {
         }
     }
 
-    fn is_focused(&self) -> bool {
+    fn _is_focused(&self) -> bool {
         self.focused
     }
 
@@ -107,8 +110,15 @@ impl PanelWidget for TaskManager {
         }
     }
 
-    fn is_selected(&self) -> bool {
+    fn _is_selected(&self) -> bool {
         self.selected
+    }
+
+    fn take_keybinds_control(&self) -> Option<Vec<KeyCode>> {
+        match self.view {
+            TaskManagerView::Selector => self.selector.take_keybinds_control(),
+            TaskManagerView::Editor => self.editor.take_keybinds_control(),
+        }
     }
 
     fn handle_input(&mut self, key: KeyEvent) {

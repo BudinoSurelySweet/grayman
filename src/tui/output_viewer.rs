@@ -62,7 +62,7 @@ impl PanelWidget for OutputViewer {
         self.focused = value
     }
 
-    fn is_focused(&self) -> bool {
+    fn _is_focused(&self) -> bool {
         self.focused
     }
 
@@ -70,8 +70,12 @@ impl PanelWidget for OutputViewer {
         self.selected = value
     }
 
-    fn is_selected(&self) -> bool {
+    fn _is_selected(&self) -> bool {
         self.selected
+    }
+
+    fn take_keybinds_control(&self) -> Option<Vec<KeyCode>> {
+        None
     }
 
     fn handle_input(&mut self, key: KeyEvent) {

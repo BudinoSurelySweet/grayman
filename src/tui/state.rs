@@ -242,6 +242,24 @@ impl State {
     }
 
     fn handle_input(&mut self, key: KeyEvent) {
+        // Force to take control of the input from a sub-panel
+        if let Some(keybinds) = match &self.selected_panel {
+            Some(Panel::TopLeft) => self.task_manager.take_keybinds_control(),
+            Some(Panel::BottomLeft) => self.env_editor.take_keybinds_control(),
+            Some(Panel::Right) => self.output_viewer.take_keybinds_control(),
+            None => None,
+        } && keybinds.contains(&key.code)
+        {
+            match &self.selected_panel {
+                Some(Panel::TopLeft) => self.task_manager.handle_input(key),
+                Some(Panel::BottomLeft) => self.env_editor.handle_input(key),
+                Some(Panel::Right) => self.output_viewer.handle_input(key),
+                None => {}
+            }
+
+            return;
+        }
+
         match key.code {
             KeyCode::Char('q') => self.running = false,
 
