@@ -8,10 +8,11 @@ use crate::{
 };
 use crossterm::event::KeyCode;
 use ratatui::{
-    layout::{Alignment, Constraint, Offset},
+    layout::{Alignment, Constraint},
     prelude::{Buffer, Rect},
+    style::{Color, Stylize},
     text::Line,
-    widgets::{Block, Paragraph, Row, StatefulWidget, Table, TableState, Widget, Wrap},
+    widgets::{Block, Padding, Paragraph, Row, StatefulWidget, Table, TableState, Widget, Wrap},
 };
 
 pub struct EnvEditor {
@@ -77,16 +78,20 @@ impl Widget for &mut EnvEditor {
     where
         Self: Sized,
     {
-        Block::bordered()
+        let block = Block::bordered()
             .title(Line::from(" Env ").alignment(Alignment::Center))
-            .border_style(get_style_by_status(self.selected, self.focused))
-            .render(area, buf);
+            .padding(Padding::new(1, 1, 0, 0))
+            .border_style(get_style_by_status(self.selected, self.focused));
+
+        let inner_area = block.inner(area);
+
+        block.render(area, buf);
 
         match load_config() {
             Err(_) => {
                 Paragraph::new("There is no configuration.")
                     .wrap(Wrap { trim: true })
-                    .render(area + Offset::new(2, 1), buf);
+                    .render(inner_area, buf);
             }
             Ok(config) => {
                 let env = config.env.unwrap_or_default();
@@ -99,19 +104,22 @@ impl Widget for &mut EnvEditor {
 
                 let rows: Vec<Row> = rows
                     .iter()
-                    .map(|(name, value)| Row::new(vec![name.clone(), value.clone()]))
+                    .enumerate()
+                    .map(|(i, (name, value))| {
+                        Row::new(vec![name.clone(), value.clone()]).bg(if i % 2 == 0 {
+                            Color::Black
+                        } else {
+                            Color::default()
+                        })
+                    })
                     .collect();
 
                 let widths = [Constraint::Percentage(40), Constraint::Fill(1)];
                 let table = Table::new(rows, widths)
+                    .header(Row::new(["Key", "Value"]).bold())
                     .row_highlight_style(get_style_by_status(self.selected, self.focused));
 
-                StatefulWidget::render(
-                    table,
-                    area + Offset::new(2, 1),
-                    buf,
-                    &mut self.variable_table_state,
-                );
+                StatefulWidget::render(table, inner_area, buf, &mut self.variable_table_state);
             }
         }
     }

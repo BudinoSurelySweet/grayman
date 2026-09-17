@@ -11,11 +11,11 @@ use crate::{
 use anyhow::{Context, Result};
 use crossterm::event::KeyCode;
 use ratatui::{
-    layout::{Alignment, Offset},
+    layout::Alignment,
     prelude::{Buffer, Rect},
     symbols,
     text::Line,
-    widgets::{Block, List, ListState, Paragraph, StatefulWidget, Widget, Wrap},
+    widgets::{Block, List, ListState, Padding, Paragraph, StatefulWidget, Widget, Wrap},
 };
 
 pub struct TaskSelector {
@@ -119,16 +119,20 @@ impl Widget for &mut TaskSelector {
     where
         Self: Sized,
     {
-        Block::bordered()
+        let block = Block::bordered()
             .title(Line::from(" Tasks ").alignment(Alignment::Center))
-            .border_style(get_style_by_status(self.selected, self.focused))
-            .render(area, buf);
+            .padding(Padding::new(1, 1, 0, 0))
+            .border_style(get_style_by_status(self.selected, self.focused));
+
+        let inner_area = block.inner(area);
+
+        block.render(area, buf);
 
         match load_config() {
             Err(_) => {
                 Paragraph::new("There is no configuration.")
                     .wrap(Wrap { trim: true })
-                    .render(area + Offset::new(2, 1), buf);
+                    .render(inner_area, buf);
             }
             Ok(config) => {
                 let mut task_list: Vec<String> =
@@ -140,7 +144,7 @@ impl Widget for &mut TaskSelector {
                     List::new(task_list)
                         .highlight_symbol(format!("{} ", symbols::DOT))
                         .highlight_style(get_style_by_status(self.selected, self.focused)),
-                    area + Offset::new(2, 1),
+                    inner_area,
                     buf,
                     &mut self.task_list_state,
                 );

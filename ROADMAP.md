@@ -4,8 +4,7 @@
 
 ## Now
 
-- Aggiungere il titolo per la tabella dell'env panel.
-- Aggiornare le available keybinds delle tasks.
+- Add a way to select/deselect a task in the task selector.
 - Refining the UX of the TUI.
 
 ## Next
