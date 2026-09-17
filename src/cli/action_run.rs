@@ -2,7 +2,7 @@ use crate::{
     cli::args_data::ExecutionData,
     data::Config,
     engine::runner::run_task_with_deps,
-    info,
+    log,
     serializer::{
         config::load_config,
         last_task::{get_last_task_name, save_last_task_name},
@@ -31,7 +31,7 @@ pub fn execute_run(data: ExecutionData) -> Result<()> {
         task_name = prompt_available_tasks(&config)?;
     }
 
-    info!("Task \"{}\" is selected", task_name);
+    log!(info, "Task \"{}\" is selected", task_name);
 
     let task = config
         .tasks
@@ -43,7 +43,7 @@ pub fn execute_run(data: ExecutionData) -> Result<()> {
 
     save_last_task_name(&task_name)?;
 
-    info!("Task \"{}\" exited with success", &task_name);
+    log!(info, "Task \"{}\" exited with success", &task_name);
 
     Ok(())
 }

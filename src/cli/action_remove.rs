@@ -1,7 +1,7 @@
 use crate::{
     cli::args_data::RemoveAction,
     data::Task,
-    info,
+    log,
     serializer::config::{load_config, save_config},
 };
 use anyhow::{Result, anyhow};
@@ -29,11 +29,15 @@ pub fn execute_remove(action: RemoveAction) -> Result<()> {
             save_config(config)?;
 
             if vars_to_remove.is_empty() {
-                info!("No variable was removed");
+                log!(info, "No variable was removed");
             } else if vars_to_remove.len() == 1 {
-                info!("Variable \"{}\" removed succesfully", vars_to_remove[0]);
+                log!(
+                    info,
+                    "Variable \"{}\" removed succesfully",
+                    vars_to_remove[0]
+                );
             } else {
-                info!("Variables {:?} removed succesfully", vars_to_remove);
+                log!(info, "Variables {:?} removed succesfully", vars_to_remove);
             }
         }
         RemoveAction::Task => {
@@ -57,11 +61,11 @@ pub fn execute_remove(action: RemoveAction) -> Result<()> {
             save_config(config)?;
 
             if tasks_to_remove.is_empty() {
-                info!("No task was removed");
+                log!(info, "No task was removed");
             } else if tasks_to_remove.len() == 1 {
-                info!("Task \"{}\" removed succesfully", tasks_to_remove[0]);
+                log!(info, "Task \"{}\" removed succesfully", tasks_to_remove[0]);
             } else {
-                info!("Tasks {:?} removed succesfully", tasks_to_remove);
+                log!(info, "Tasks {:?} removed succesfully", tasks_to_remove);
             }
         }
     }

@@ -1,7 +1,7 @@
 use crate::{
     cli::args_data::AddAction,
     data::Task,
-    info,
+    log,
     serializer::config::{load_config, save_config},
 };
 use anyhow::Result;
@@ -178,7 +178,11 @@ pub fn execute_add(action: AddAction) -> Result<()> {
             config.env = Some(env);
             save_config(config)?;
 
-            info!("Environment variable \"{}\" created succesfully", var_name);
+            log!(
+                info,
+                "Environment variable \"{}\" created succesfully",
+                var_name
+            );
         }
         AddAction::Task => {
             let task = prompt_task_creation()?;
@@ -187,7 +191,7 @@ pub fn execute_add(action: AddAction) -> Result<()> {
             config.tasks.push(task);
             save_config(config)?;
 
-            info!("Task \"{}\" created succesfully", task_name);
+            log!(info, "Task \"{}\" created succesfully", task_name);
         }
     }
 

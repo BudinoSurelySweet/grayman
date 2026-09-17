@@ -1,7 +1,7 @@
-use grayman::{cli::entry_point::run, error};
+use grayman::{cli::entry_point::run, log};
 
 fn main() {
     if let Err(err) = run() {
-        error!("{}", err);
+        log!(error, "{}", err);
     }
 }

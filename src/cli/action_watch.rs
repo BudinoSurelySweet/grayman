@@ -2,12 +2,11 @@ use crate::{
     cli::args_data::ExecutionData,
     data::Config,
     engine::watcher::{EventMessageType, WatcherEventData, start_watcher},
-    error, info,
+    log,
     serializer::{
         config::load_config,
         last_task::{get_last_task_name, save_last_task_name},
     },
-    warn,
 };
 use anyhow::{Result, anyhow};
 
@@ -48,9 +47,9 @@ pub fn execute_watch(data: ExecutionData) -> Result<()> {
 
     let emit_message = |data: WatcherEventData| {
         match data.message_type {
-            EventMessageType::Info => info!("{}", data.message),
-            EventMessageType::_Warn => warn!("{}", data.message),
-            EventMessageType::_Error => error!("{}", data.message),
+            EventMessageType::Info => log!(info, "{}", data.message),
+            EventMessageType::_Warn => log!(warn, "{}", data.message),
+            EventMessageType::_Error => log!(error, "{}", data.message),
         }
 
         Ok(())
@@ -60,7 +59,7 @@ pub fn execute_watch(data: ExecutionData) -> Result<()> {
 
     save_last_task_name(&task_name)?;
 
-    info!("Task \"{}\" exited with success", &task_name);
+    log!(info, "Task \"{}\" exited with success", &task_name);
 
     Ok(())
 }

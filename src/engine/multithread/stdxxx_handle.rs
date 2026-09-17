@@ -18,7 +18,7 @@ pub fn get_stdxxx_handles(
                 let reader = BufReader::new(stdout);
 
                 for line in reader.lines().map_while(Result::ok) {
-                    let _ = sender.send(format!("{}", line));
+                    let _ = sender.send(line);
                 }
             }
         }
@@ -32,7 +32,7 @@ pub fn get_stdxxx_handles(
                 let reader = BufReader::new(stderr);
 
                 for line in reader.lines().map_while(Result::ok) {
-                    let _ = sender.send(format!("{}", line));
+                    let _ = sender.send(line);
                 }
             }
         }
