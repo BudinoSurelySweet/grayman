@@ -7,6 +7,21 @@ pub enum StdioMode {
     Piped,
 }
 
+// List of environment variables to force the use of colors.
+const ENVS_COLOR: [(&str, &str); 11] = [
+    ("FORCE_COLOR", "1"),
+    ("CLICOLOR_FORCE", "1"),
+    ("TERM", "xterm-256color"),
+    ("COLORTERM", "truecolor"),
+    ("PY_COLORS", "1"),
+    ("MYPY_FORCE_COLOR", "1"),
+    ("NPM_CONFIG_COLOR", "always"),
+    ("YARN_COLOR", "1"),
+    ("CARGO_TERM_COLOR", "always"),
+    ("RUST_LOG_STYLE", "always"),
+    ("GTEST_COLOR", "1"),
+];
+
 pub fn create_commands(task: &Task, config: &Config, mode: StdioMode) -> Result<Vec<Command>> {
     let mut command_list = Vec::new();
 
@@ -42,6 +57,9 @@ pub fn create_commands(task: &Task, config: &Config, mode: StdioMode) -> Result<
         if let Some(env) = &task.env {
             command.envs(env);
         }
+
+        // Inject environment variables for coloring the output
+        command.envs(ENVS_COLOR);
 
         match mode {
             // Connect the IO streams to the parent's terminal

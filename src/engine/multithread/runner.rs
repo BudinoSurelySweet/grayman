@@ -5,6 +5,7 @@ use crate::{
         extractor::get_tasks_to_execute,
         multithread::stdxxx_handle::get_stdxxx_handles,
     },
+    make_info,
 };
 use anyhow::Result;
 use std::{
@@ -52,6 +53,8 @@ pub fn run_task_with_deps(task: Task, config: Config) -> Result<Receiver<String>
                         if !exit_code.success() {
                             break 'first;
                         }
+
+                        let _ = sender.send(make_info!("Task \"{}\" completed", task.name));
                     }
                     Err(error) => {
                         let _ = sender.send(format!("Error while waiting for child: {}", error));

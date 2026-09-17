@@ -4,7 +4,6 @@
 
 ## Now
 
-- Add a task's metadata viewer
 - Refining the UX of the TUI.
 
 ## Next
@@ -15,6 +14,7 @@
 
 ## Later
 
+- Add a task's metadata viewer
 - Add a way to add/edit/remove tasks in the TUI's tasks panel.
 - Add a way to add/edit/remove variables in the TUI's variables panel.
 - Try integrating a terminal inside the TUI. (maybe with the crate `tui-term`)

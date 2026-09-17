@@ -5,12 +5,13 @@ use crate::{
         trait_panel::PanelWidget,
     },
 };
+use ansi_to_tui::IntoText;
 use crossterm::event::KeyCode;
 use ratatui::{
     layout::{Alignment, Margin},
     prelude::{Buffer, Rect},
     style::{Color, Stylize},
-    text::Line,
+    text::{Line, Text},
     widgets::{
         Block, BorderType, Padding, Paragraph, Scrollbar, ScrollbarOrientation, ScrollbarState,
         StatefulWidget, Widget,
@@ -129,10 +130,16 @@ impl Widget for &mut OutputViewer {
         // Block the scroll at the max scroll value
         self.scroll = self.scroll.min(max_scroll);
 
-        let text_lines: Vec<Line> = self.output.iter().map(|s| Line::from(s.as_str())).collect();
+        // Coloring the output
+        let text: Text = self
+            .output
+            .iter()
+            .filter_map(|line| line.into_text().ok())
+            .flat_map(|parsed_text| parsed_text.lines)
+            .collect();
 
-        // Render the outputs
-        Paragraph::new(text_lines)
+        // Render the output
+        Paragraph::new(text)
             .block(block)
             .scroll((self.scroll, 0))
             .render(area, buf);
