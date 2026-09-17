@@ -12,7 +12,7 @@ pub struct Config {
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Task {
     pub name: String,
-    pub command: String,
+    pub commands: Vec<String>,
     pub description: Option<String>,
     pub depends_on: Option<Vec<String>>,
     pub env: Option<HashMap<String, String>>,

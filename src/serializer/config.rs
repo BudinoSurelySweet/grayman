@@ -6,7 +6,16 @@ use anyhow::{Context, Result};
 use std::{fs, path::PathBuf};
 
 // Serialize the configuration on disk
-pub fn save_config(config: &Config) -> Result<()> {
+pub fn save_config(mut config: Config) -> Result<()> {
+    // If shell is not set than is true. Otherwise it'll has the specified value
+    for task in &mut config.tasks {
+        if let Some(shell) = task.shell
+            && shell == true
+        {
+            task.shell = None;
+        }
+    }
+
     let file_path = PathBuf::from(format!("{}/{}", DOTFILE_FOLDER, CONFIG_FILE));
     let toml_string = toml::to_string_pretty(&config).context("Can't serialize")?;
 
@@ -20,7 +29,14 @@ pub fn load_config() -> Result<Config> {
     let file_path = PathBuf::from(format!("{}/{}", DOTFILE_FOLDER, CONFIG_FILE));
     let content =
         fs::read_to_string(&file_path).context(format!("Can't read file {:?}", file_path))?;
-    let config: Config = toml::from_str(&content).context("Syntax error")?;
+    let mut config: Config = toml::from_str(&content).context("Syntax error")?;
+
+    // If shell is not set than is true. Otherwise it'll has the specified value
+    for task in &mut config.tasks {
+        if task.shell.is_none() {
+            task.shell = Some(true);
+        }
+    }
 
     Ok(config.into())
 }

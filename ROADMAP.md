@@ -4,13 +4,13 @@
 
 ## Now
 
+- Aggiungere il titolo per la tabella dell'env panel.
+- Aggiornare le available keybinds delle tasks.
 - Refining the UX of the TUI.
 
 ## Next
 
 - Aggiungere un menu di conferma per quando l'utente fa alcune azioni (tipo quit).
-- Fare in modo che di default se shell è `None` allora venga interpretato come `true`
-- Modify the command field for the task. `String` -> `Vec<String>`, così che possa accettare molteplici comandi in sequenza.
 
 ## Later
 

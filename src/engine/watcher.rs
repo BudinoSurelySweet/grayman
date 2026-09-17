@@ -1,7 +1,7 @@
 use crate::{
     data::{Config, Task},
     engine::{
-        command_creator::{StdioMode, create_command},
+        command_creator::{StdioMode, create_commands},
         extractor::get_tasks_to_execute,
     },
 };
@@ -60,16 +60,18 @@ where
             })?;
         }
 
-        for (i, task) in task_list.iter().enumerate() {
-            let mut command = create_command(task, config, StdioMode::Direct)?;
+        'outer: for (i, task) in task_list.iter().enumerate() {
+            let command_list = create_commands(task, config, StdioMode::Direct)?;
 
-            if i == task_list.len() - 1 {
-                child = Some(command.spawn()?);
-            } else {
-                let status = command.status()?;
+            for mut command in command_list {
+                if i == task_list.len() - 1 {
+                    child = Some(command.spawn()?);
+                } else {
+                    let status = command.status()?;
 
-                if !status.success() {
-                    break;
+                    if !status.success() {
+                        break 'outer;
+                    }
                 }
             }
         }

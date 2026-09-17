@@ -34,9 +34,33 @@ fn prompt_task_creation() -> Result<Task> {
     let cwd = inquire::Text::new("In which directory will be executed?")
         .with_help_message("empty = current")
         .prompt()?;
+
+    let mut commands: Vec<String> = Vec::new();
+
     let command = inquire::Text::new("What command do you want to execute?")
         .with_validator(MinLengthValidator::new(1))
         .prompt()?;
+
+    commands.push(command);
+
+    loop {
+        let user_want_to_continue = inquire::Confirm::new("Do you want to add another command?")
+            .with_default(false)
+            .with_starting_input("No")
+            .with_help_message("y/N")
+            .prompt()?;
+
+        if !user_want_to_continue {
+            break;
+        }
+
+        let command = inquire::Text::new("What command do you want to add?")
+            .with_validator(MinLengthValidator::new(1))
+            .prompt()?;
+
+        commands.push(command);
+    }
+
     let shell = inquire::Confirm::new("Enable execution inside shell?")
         .with_default(true)
         .with_starting_input("Yes")
@@ -122,12 +146,12 @@ fn prompt_task_creation() -> Result<Task> {
     };
     let env = if env.is_empty() { None } else { Some(env) };
     let cwd = if cwd.is_empty() { None } else { Some(cwd) };
-    let shell = Some(shell);
+    let shell = if shell { None } else { Some(shell) };
     let watch = if watch.is_empty() { None } else { Some(watch) };
 
     let task = Task {
         name,
-        command,
+        commands,
         description,
         depends_on,
         env,
@@ -152,7 +176,7 @@ pub fn execute_add(action: AddAction) -> Result<()> {
 
             env.insert(var_name.clone(), var_value);
             config.env = Some(env);
-            save_config(&config)?;
+            save_config(config)?;
 
             info!("Environment variable \"{}\" created succesfully", var_name);
         }
@@ -161,7 +185,7 @@ pub fn execute_add(action: AddAction) -> Result<()> {
             let task_name = task.name.clone();
 
             config.tasks.push(task);
-            save_config(&config)?;
+            save_config(config)?;
 
             info!("Task \"{}\" created succesfully", task_name);
         }

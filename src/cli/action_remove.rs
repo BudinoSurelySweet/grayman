@@ -26,7 +26,7 @@ pub fn execute_remove(action: RemoveAction) -> Result<()> {
 
             config.env = Some(env);
 
-            save_config(&config)?;
+            save_config(config)?;
 
             if vars_to_remove.is_empty() {
                 info!("No variable was removed");
@@ -54,7 +54,7 @@ pub fn execute_remove(action: RemoveAction) -> Result<()> {
 
             config.tasks = tasks;
 
-            save_config(&config)?;
+            save_config(config)?;
 
             if tasks_to_remove.is_empty() {
                 info!("No task was removed");

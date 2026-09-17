@@ -1,7 +1,7 @@
 use crate::{
     data::{Config, Task},
     engine::{
-        command_creator::{StdioMode, create_command},
+        command_creator::{StdioMode, create_commands},
         extractor::get_tasks_to_execute,
         multithread::stdxxx_handle::get_stdxxx_handles,
     },
@@ -61,54 +61,56 @@ pub fn start_watcher(task: Task, config: Config) -> Result<(Receiver<String>, Ar
                     let _ = child.wait(); // Clean the process
                 }
 
-                for (i, task) in task_list.iter().enumerate() {
-                    let mut command = match create_command(task, &config, StdioMode::Piped) {
-                        Ok(command) => command,
+                'outer: for (i, task) in task_list.iter().enumerate() {
+                    let command_list = match create_commands(task, &config, StdioMode::Piped) {
+                        Ok(list) => list,
                         Err(error) => {
                             let _ = sender.send(format!("{}", error));
                             return;
                         }
                     };
 
-                    let is_last_element = i == task_list.len() - 1;
+                    for mut command in command_list {
+                        let is_last_element = i == task_list.len() - 1;
 
-                    if is_last_element {
-                        match command.spawn() {
-                            Err(error) => {
-                                let _ = sender.send(format!("{}", error));
-                                return;
-                            }
-                            Ok(mut new_child) => {
-                                let stdout = new_child.stdout.take();
-                                let stderr = new_child.stderr.take();
+                        if is_last_element {
+                            match command.spawn() {
+                                Err(error) => {
+                                    let _ = sender.send(format!("{}", error));
+                                    return;
+                                }
+                                Ok(mut new_child) => {
+                                    let stdout = new_child.stdout.take();
+                                    let stderr = new_child.stderr.take();
 
-                                let (_, _) = get_stdxxx_handles(stdout, stderr, &sender);
+                                    let (_, _) = get_stdxxx_handles(stdout, stderr, &sender);
 
-                                *child = Some(new_child);
-                            }
-                        };
-                    } else {
-                        match command.spawn() {
-                            Err(error) => {
-                                let _ = sender.send(format!("Spawn error: {}", error));
-                                return;
-                            }
-                            Ok(mut temp_child) => {
-                                let stdout = temp_child.stdout.take();
-                                let stderr = temp_child.stderr.take();
+                                    *child = Some(new_child);
+                                }
+                            };
+                        } else {
+                            match command.spawn() {
+                                Err(error) => {
+                                    let _ = sender.send(format!("Spawn error: {}", error));
+                                    return;
+                                }
+                                Ok(mut temp_child) => {
+                                    let stdout = temp_child.stdout.take();
+                                    let stderr = temp_child.stderr.take();
 
-                                let (_, _) = get_stdxxx_handles(stdout, stderr, &sender);
+                                    let (_, _) = get_stdxxx_handles(stdout, stderr, &sender);
 
-                                match temp_child.wait() {
-                                    Ok(status) if !status.success() => {
-                                        let _ = sender.send(format!("{}", status));
-                                        break;
+                                    match temp_child.wait() {
+                                        Ok(status) if !status.success() => {
+                                            let _ = sender.send(format!("{}", status));
+                                            break 'outer;
+                                        }
+                                        Err(error) => {
+                                            let _ = sender.send(format!("Wait error: {}", error));
+                                            return;
+                                        }
+                                        _ => {}
                                     }
-                                    Err(error) => {
-                                        let _ = sender.send(format!("Wait error: {}", error));
-                                        return;
-                                    }
-                                    _ => {}
                                 }
                             }
                         }
