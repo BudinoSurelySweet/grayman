@@ -169,7 +169,7 @@ pub fn execute_add(action: AddAction) -> Result<()> {
 
     match action {
         AddAction::Var => {
-            let mut env = config.env.unwrap_or_else(|| HashMap::new());
+            let mut env = config.env.unwrap_or_else(HashMap::new);
 
             let var_name = inquire::Text::new("What's the variable's name?").prompt()?;
             let var_value = inquire::Text::new(&format!("{} =", var_name)).prompt()?;

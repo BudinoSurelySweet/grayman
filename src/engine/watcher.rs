@@ -25,7 +25,7 @@ fn clear_terminal() -> Result<()> {
     Ok(())
 }
 
-fn execute(task_list: &Vec<Task>, config: &Config, child: &mut Option<Child>) -> Result<()> {
+fn execute(task_list: &[Task], config: &Config, child: &mut Option<Child>) -> Result<()> {
     if let Some(mut child) = child.take() {
         let _ = child.kill(); // Kill the child
         let _ = child.wait(); // Clean the process
@@ -99,10 +99,10 @@ pub fn start_watcher(task: &Task, config: &Config, clear_terminal_on_restart: bo
             Err(err) => return Err(anyhow!("Error while watching: {:?}", err)),
             Ok(event_list) => {
                 for event in event_list {
-                    let needs_restart = match event.event.kind {
-                        EventKind::Create(_) | EventKind::Modify(_) | EventKind::Remove(_) => true,
-                        _ => false,
-                    };
+                    let needs_restart = matches!(
+                        event.event.kind,
+                        EventKind::Create(_) | EventKind::Modify(_) | EventKind::Remove(_)
+                    );
 
                     if needs_restart {
                         if clear_terminal_on_restart {

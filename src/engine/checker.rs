@@ -45,10 +45,10 @@ fn check_branch(
 pub fn check_ciclic_dependencies(tasks: &HashMap<String, Option<Vec<String>>>) -> Result<()> {
     let mut visited = HashSet::new();
 
-    for (name, _) in tasks {
+    for name in tasks.keys() {
         let mut branch = Vec::new();
 
-        check_branch(&mut branch, &mut visited, &name, tasks)?;
+        check_branch(&mut branch, &mut visited, name, tasks)?;
     }
 
     Ok(())

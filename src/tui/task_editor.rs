@@ -60,9 +60,8 @@ impl PanelWidget for TaskEditor {
     }
 
     fn handle_input(&mut self, key: KeyEvent) {
-        match key.code {
-            KeyCode::Esc => self.task_manager_request = Some(TaskManagerRequest::OpenSelector),
-            _ => {}
+        if key.code == KeyCode::Esc {
+            self.task_manager_request = Some(TaskManagerRequest::OpenSelector)
         }
     }
 

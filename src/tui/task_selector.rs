@@ -42,7 +42,7 @@ impl TaskSelector {
             let index = task_list.iter().position(|task| task.name == name);
 
             task_list_state.select(index);
-            selected_task_idx = if let Some(index) = index { index } else { 0 };
+            selected_task_idx = index.unwrap_or_default();
         } else {
             task_list_state.select_first();
             selected_task_idx = 0;
@@ -69,7 +69,7 @@ impl TaskSelector {
             self.selected_task_idx
         ))?;
 
-        return Ok(task.clone());
+        Ok(task.clone())
     }
 }
 

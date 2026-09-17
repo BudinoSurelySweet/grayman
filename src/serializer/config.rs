@@ -10,7 +10,7 @@ pub fn save_config(mut config: Config) -> Result<()> {
     // If shell is not set than is true. Otherwise it'll has the specified value
     for task in &mut config.tasks {
         if let Some(shell) = task.shell
-            && shell == true
+            && shell
         {
             task.shell = None;
         }
@@ -38,5 +38,5 @@ pub fn load_config() -> Result<Config> {
         }
     }
 
-    Ok(config.into())
+    Ok(config)
 }

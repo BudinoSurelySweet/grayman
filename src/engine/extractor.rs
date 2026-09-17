@@ -41,7 +41,7 @@ fn get_tasks_to_execute_recursively(
     }
 
     task_list.push(task.clone());
-    executed.insert(String::from(task.name.clone()));
+    executed.insert(task.name.clone());
 
     Ok(task_list)
 }

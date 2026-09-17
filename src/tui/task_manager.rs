@@ -56,8 +56,7 @@ impl TaskManager {
     }
 
     fn change_view(&mut self, _view: TaskManagerView) {
-        // FIXME: Blocked because the other views are not ready to be used.
-        return;
+        // FIXME: Other views are not ready to be used.
 
         // self.view = view;
 

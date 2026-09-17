@@ -46,7 +46,7 @@ pub fn execute_watch(data: WatchCommandData) -> Result<()> {
     };
 
     save_last_task_name(&task_name)?;
-    start_watcher(&task, &config, data.clear_on_restart)?;
+    start_watcher(task, &config, data.clear_on_restart)?;
 
     log!(info, "Task \"{}\" exited with success", &task_name);
 

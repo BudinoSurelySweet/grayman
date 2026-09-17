@@ -15,7 +15,7 @@ pub fn execute_remove(action: RemoveAction) -> Result<()> {
             let Some(mut env) = config.env else {
                 return Err(anyhow!("There are no environment variables"));
             };
-            let options = env.iter().map(|(name, _)| name.clone()).collect();
+            let options = env.keys().cloned().collect();
             let vars_to_remove =
                 inquire::MultiSelect::new("What variables do you want to remove?", options)
                     .prompt()?;

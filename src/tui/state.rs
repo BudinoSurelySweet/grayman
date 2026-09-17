@@ -231,10 +231,12 @@ impl State {
 
             terminal.draw(|f| self.render(f))?;
 
-            if event::poll(Duration::from_millis(50))? {
-                if let Event::Key(key) = event::read()? {
-                    self.handle_input(key);
-                }
+            if !event::poll(Duration::from_millis(50))? {
+                continue;
+            }
+
+            if let Event::Key(key) = event::read()? {
+                self.handle_input(key);
             }
         }
 
