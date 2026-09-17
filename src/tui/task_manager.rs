@@ -12,7 +12,7 @@ use ratatui::{
 
 pub enum TaskManagerRequest {
     OpenSelector,
-    OpenEditor(Task),
+    _OpenEditor(Task),
 }
 
 pub trait TakeTaskManagerRequest {
@@ -78,7 +78,7 @@ impl TaskManager {
             TaskManagerRequest::OpenSelector => {
                 self.change_view(TaskManagerView::Selector);
             }
-            TaskManagerRequest::OpenEditor(task) => {
+            TaskManagerRequest::_OpenEditor(task) => {
                 self.change_view(TaskManagerView::Editor);
 
                 self.editor.editing_task = Some(task);

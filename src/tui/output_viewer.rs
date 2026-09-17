@@ -1,13 +1,16 @@
-use crate::tui::{
-    style::{HIGHLIGHT_STYLE, get_color_by_status, get_style_by_status},
-    trait_panel::PanelWidget,
+use crate::{
+    generate_keybinds,
+    tui::{
+        style::{HIGHLIGHT_STYLE, get_color_by_status, get_style_by_status},
+        trait_panel::PanelWidget,
+    },
 };
-use crossterm::event::{KeyCode, KeyEvent};
+use crossterm::event::KeyCode;
 use ratatui::{
     layout::{Alignment, Margin},
     prelude::{Buffer, Rect},
     style::{Color, Stylize},
-    text::{Line, Span},
+    text::Line,
     widgets::{
         Block, BorderType, Padding, Paragraph, Scrollbar, ScrollbarOrientation, ScrollbarState,
         StatefulWidget, Widget,
@@ -78,27 +81,19 @@ impl PanelWidget for OutputViewer {
         None
     }
 
-    fn handle_input(&mut self, key: KeyEvent) {
-        match key.code {
-            KeyCode::Char('k') | KeyCode::Up => {
-                self.scroll = self.scroll.saturating_sub(1);
-            }
-            KeyCode::Char('j') | KeyCode::Down => {
-                self.scroll = self.scroll.saturating_add(1);
-            }
-            _ => {}
-        }
-    }
+    generate_keybinds! {self,
+        "Exit" ["esc"]:
+        KeyCode::Esc => {},
 
-    fn get_available_keybinds(&self) -> Line<'static> {
-        Line::from_iter([
-            Span::from(" Exit"),
-            Span::styled(" [esc]", HIGHLIGHT_STYLE),
-            Span::from(" Down"),
-            Span::styled(" [j/Down]", HIGHLIGHT_STYLE),
-            Span::from(" Up"),
-            Span::styled(" [k/Up] ", HIGHLIGHT_STYLE),
-        ])
+        "Up" ["k/up"]:
+        KeyCode::Char('k') | KeyCode::Up => {
+            self.scroll = self.scroll.saturating_sub(1);
+        },
+
+        "Down" ["j/down"]:
+        KeyCode::Char('j') | KeyCode::Down => {
+            self.scroll = self.scroll.saturating_add(1);
+        }
     }
 }
 

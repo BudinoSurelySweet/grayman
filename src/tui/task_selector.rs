@@ -1,13 +1,18 @@
-use crate::serializer::last_task::get_last_task_name;
-use crate::tui::style::{HIGHLIGHT_STYLE, get_style_by_status};
-use crate::tui::task_manager::{TakeTaskManagerRequest, TaskManagerRequest};
-use crate::tui::trait_panel::PanelWidget;
-use crate::{data::Task, serializer::config::load_config};
+use crate::{
+    data::Task,
+    generate_keybinds,
+    serializer::{config::load_config, last_task::get_last_task_name},
+    tui::{
+        style::{HIGHLIGHT_STYLE, get_style_by_status},
+        task_manager::{TakeTaskManagerRequest, TaskManagerRequest},
+        trait_panel::PanelWidget,
+    },
+};
 use anyhow::{Context, Result};
-use crossterm::event::{KeyCode, KeyEvent};
+use crossterm::event::KeyCode;
 use ratatui::{
     layout::{Alignment, Offset},
-    prelude::{Buffer, Rect, Span},
+    prelude::{Buffer, Rect},
     symbols,
     text::Line,
     widgets::{Block, List, ListState, Paragraph, StatefulWidget, Widget, Wrap},
@@ -86,34 +91,26 @@ impl PanelWidget for TaskSelector {
         None
     }
 
-    fn handle_input(&mut self, key: KeyEvent) {
-        match key.code {
-            KeyCode::Char('k') | KeyCode::Up => {
-                self.task_list_state.select_previous();
-            }
-            KeyCode::Char('j') | KeyCode::Down => {
-                self.task_list_state.select_next();
-            }
-            KeyCode::Char('e') => {
-                if let Ok(task) = self.get_selected_task() {
-                    self.task_manager_request = Some(TaskManagerRequest::OpenEditor(task));
-                }
-            }
-            _ => {}
-        }
-    }
+    generate_keybinds! { self,
+        "Esc" ["esc"]:
+        KeyCode::Esc => {},
 
-    fn get_available_keybinds(&self) -> Line<'static> {
-        Line::from_iter([
-            Span::from(" Exit"),
-            Span::styled(" [esc]", HIGHLIGHT_STYLE),
-            Span::from(" Edit"),
-            Span::styled(" [e]", HIGHLIGHT_STYLE),
-            Span::from(" Down"),
-            Span::styled(" [j/Down]", HIGHLIGHT_STYLE),
-            Span::from(" Up"),
-            Span::styled(" [k/Up] ", HIGHLIGHT_STYLE),
-        ])
+        "Up" ["k/up"]:
+        KeyCode::Char('k') | KeyCode::Up => {
+            self.task_list_state.select_previous();
+        },
+
+        "Down" ["j/down"]:
+        KeyCode::Char('j') | KeyCode::Down => {
+            self.task_list_state.select_next();
+        },
+
+        // "Edit" ["e"]:
+        // KeyCode::Char('e') => {
+        //     if let Ok(task) = self.get_selected_task() {
+        //         self.task_manager_request = Some(TaskManagerRequest::OpenEditor(task));
+        //     }
+        // }
     }
 }
 

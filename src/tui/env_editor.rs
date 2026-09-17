@@ -1,15 +1,16 @@
 use crate::{
+    generate_keybinds,
     serializer::config::load_config,
     tui::{
         style::{HIGHLIGHT_STYLE, get_style_by_status},
         trait_panel::PanelWidget,
     },
 };
-use crossterm::event::{KeyCode, KeyEvent};
+use crossterm::event::KeyCode;
 use ratatui::{
     layout::{Alignment, Constraint, Offset},
     prelude::{Buffer, Rect},
-    text::{Line, Span},
+    text::Line,
     widgets::{Block, Paragraph, Row, StatefulWidget, Table, TableState, Widget, Wrap},
 };
 
@@ -55,27 +56,19 @@ impl PanelWidget for EnvEditor {
         None
     }
 
-    fn handle_input(&mut self, key: KeyEvent) {
-        match key.code {
-            KeyCode::Char('k') | KeyCode::Up => {
-                self.variable_table_state.select_previous();
-            }
-            KeyCode::Char('j') | KeyCode::Down => {
-                self.variable_table_state.select_next();
-            }
-            _ => {}
-        }
-    }
+    generate_keybinds! {self,
+        "Exit" ["esc"]:
+        KeyCode::Esc => {},
 
-    fn get_available_keybinds(&self) -> Line<'static> {
-        Line::from_iter([
-            Span::from(" Exit"),
-            Span::styled(" [esc]", HIGHLIGHT_STYLE),
-            Span::from(" Down"),
-            Span::styled(" [j/Down]", HIGHLIGHT_STYLE),
-            Span::from(" Up"),
-            Span::styled(" [k/Up] ", HIGHLIGHT_STYLE),
-        ])
+        "Up" ["k/up"]:
+        KeyCode::Char('k') | KeyCode::Up => {
+            self.variable_table_state.select_previous();
+        },
+
+        "Down" ["j/down"]:
+        KeyCode::Char('j') | KeyCode::Down => {
+            self.variable_table_state.select_next();
+        }
     }
 }
 

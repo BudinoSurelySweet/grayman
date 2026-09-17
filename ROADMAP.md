@@ -11,6 +11,8 @@
 ## Next
 
 - Aggiungere un menu di conferma per quando l'utente fa alcune azioni (tipo quit).
+- Write the README.md
+- Add some documentation.
 
 ## Later
 
