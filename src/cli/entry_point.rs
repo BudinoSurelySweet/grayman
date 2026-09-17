@@ -6,7 +6,7 @@ use crate::{
         action_run::execute_run,
         action_watch::execute_watch,
         action_wipe::execute_wipe,
-        args_data::{Action, Cli},
+        args_data::{Cli, Command},
     },
     tui::entry_point::run as tui_run,
 };
@@ -16,14 +16,14 @@ use clap::Parser;
 pub fn run() -> Result<()> {
     let args = Cli::parse();
 
-    match args.action {
-        Action::Init => execute_init()?,
-        Action::Tui => tui_run()?,
-        Action::Run(data) => execute_run(data)?,
-        Action::Watch(data) => execute_watch(data)?,
-        Action::Add { action } => execute_add(action)?,
-        Action::Remove { action } => execute_remove(action)?,
-        Action::Wipe => execute_wipe()?,
+    match args.command {
+        Command::Init => execute_init()?,
+        Command::Tui => tui_run()?,
+        Command::Run(data) => execute_run(data)?,
+        Command::Watch(data) => execute_watch(data)?,
+        Command::Add { action } => execute_add(action)?,
+        Command::Remove { action } => execute_remove(action)?,
+        Command::Wipe => execute_wipe()?,
     }
 
     Ok(())

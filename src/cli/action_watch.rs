@@ -1,5 +1,5 @@
 use crate::{
-    cli::args_data::ExecutionData,
+    cli::args_data::WatchCommandData,
     data::Config,
     engine::watcher::start_watcher,
     log,
@@ -27,7 +27,7 @@ fn prompt_available_tasks(config: &Config) -> Result<String> {
     Ok(task_name)
 }
 
-pub fn execute_watch(data: ExecutionData) -> Result<()> {
+pub fn execute_watch(data: WatchCommandData) -> Result<()> {
     let config = load_config()?;
     let task_name;
 
@@ -45,8 +45,8 @@ pub fn execute_watch(data: ExecutionData) -> Result<()> {
         return Err(anyhow!(format!("There is no task named \"{}\"", task_name)));
     };
 
-    start_watcher(&task, &config)?;
     save_last_task_name(&task_name)?;
+    start_watcher(&task, &config, data.clear_on_restart)?;
 
     log!(info, "Task \"{}\" exited with success", &task_name);
 

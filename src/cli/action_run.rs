@@ -1,5 +1,5 @@
 use crate::{
-    cli::args_data::ExecutionData,
+    cli::args_data::RunCommandData,
     data::Config,
     engine::runner::run_task_with_deps,
     log,
@@ -17,7 +17,7 @@ fn prompt_available_tasks(config: &Config) -> Result<String> {
     Ok(task_name)
 }
 
-pub fn execute_run(data: ExecutionData) -> Result<()> {
+pub fn execute_run(data: RunCommandData) -> Result<()> {
     let config = load_config()?;
     let task_name;
 
