@@ -27,8 +27,9 @@ pub fn run_task_with_deps(task: Task, config: Config) -> Result<Receiver<String>
                     return;
                 }
             };
+            let command_list_len = command_list.len();
 
-            for mut command in command_list {
+            for (i, mut command) in command_list.into_iter().enumerate() {
                 // Spawn the process
                 let mut child = match command.spawn() {
                     Ok(child) => child,
@@ -53,12 +54,14 @@ pub fn run_task_with_deps(task: Task, config: Config) -> Result<Receiver<String>
                         if !exit_code.success() {
                             break 'first;
                         }
-
-                        let _ = sender.send(make_log!(info, "Task \"{}\" completed", task.name));
                     }
                     Err(error) => {
                         let _ = sender.send(format!("Error while waiting for child: {}", error));
                     }
+                }
+
+                if i == command_list_len - 1 {
+                    let _ = sender.send(make_log!(info, "Task \"{}\" completed", task.name));
                 }
             }
         }

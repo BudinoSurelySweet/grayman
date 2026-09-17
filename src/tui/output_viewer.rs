@@ -14,7 +14,7 @@ use ratatui::{
     text::{Line, Text},
     widgets::{
         Block, BorderType, Padding, Paragraph, Scrollbar, ScrollbarOrientation, ScrollbarState,
-        StatefulWidget, Widget,
+        StatefulWidget, Widget, Wrap,
     },
 };
 use std::collections::VecDeque;
@@ -141,6 +141,7 @@ impl Widget for &mut OutputViewer {
         // Render the output
         Paragraph::new(text)
             .block(block)
+            .wrap(Wrap { trim: true })
             .scroll((self.scroll, 0))
             .render(area, buf);
 

@@ -5,6 +5,7 @@ use crate::{
         extractor::get_tasks_to_execute,
         multithread::stdxxx_handle::get_stdxxx_handles,
     },
+    make_log,
 };
 use anyhow::{Result, anyhow};
 use notify_debouncer_full::{
@@ -65,33 +66,53 @@ pub fn start_watcher(task: Task, config: Config) -> Result<(Receiver<String>, Ar
                     let command_list = match create_commands(task, &config, StdioMode::Piped) {
                         Ok(list) => list,
                         Err(error) => {
-                            let _ = sender.send(format!("{}", error));
+                            let _ = sender.send(make_log!(
+                                error,
+                                "Failed to create the command list: {}",
+                                error
+                            ));
                             return;
                         }
                     };
 
-                    for mut command in command_list {
-                        let is_last_element = i == task_list.len() - 1;
+                    let is_last_element = i == task_list.len() - 1;
 
+                    for mut command in command_list {
                         if is_last_element {
                             match command.spawn() {
                                 Err(error) => {
-                                    let _ = sender.send(format!("{}", error));
+                                    let _ = sender.send(make_log!(
+                                        warn,
+                                        "Error while spawning the process: {}",
+                                        error
+                                    ));
+                                    let _ = sender.send(make_log!(warn, "Waiting for changes..."));
+
                                     return;
                                 }
                                 Ok(mut new_child) => {
                                     let stdout = new_child.stdout.take();
                                     let stderr = new_child.stderr.take();
 
-                                    let (_, _) = get_stdxxx_handles(stdout, stderr, &sender);
+                                    let (stdout_handle, stderr_handle) =
+                                        get_stdxxx_handles(stdout, stderr, &sender);
 
                                     *child = Some(new_child);
+
+                                    let _ = stdout_handle.join();
+                                    let _ = stderr_handle.join();
+
+                                    let _ = sender.send(make_log!(info, "Waiting for changes..."));
                                 }
                             };
                         } else {
                             match command.spawn() {
                                 Err(error) => {
-                                    let _ = sender.send(format!("Spawn error: {}", error));
+                                    let _ = sender.send(make_log!(
+                                        warn,
+                                        "Error while spawning the process: {}",
+                                        error
+                                    ));
                                     return;
                                 }
                                 Ok(mut temp_child) => {
@@ -102,11 +123,16 @@ pub fn start_watcher(task: Task, config: Config) -> Result<(Receiver<String>, Ar
 
                                     match temp_child.wait() {
                                         Ok(status) if !status.success() => {
-                                            let _ = sender.send(format!("{}", status));
+                                            let _ = sender.send(make_log!(
+                                                warn,
+                                                "An error occoured. Waiting for changes..."
+                                            ));
+
                                             break 'outer;
                                         }
                                         Err(error) => {
-                                            let _ = sender.send(format!("Wait error: {}", error));
+                                            let _ = sender
+                                                .send(format!("Process' wait error: {}", error));
                                             return;
                                         }
                                         _ => {}
@@ -118,6 +144,8 @@ pub fn start_watcher(task: Task, config: Config) -> Result<(Receiver<String>, Ar
                 }
             }
         };
+
+        let _ = sender.send(make_log!(info, "Starting the selected task..."));
 
         // First execution of the task
         execute(&mut child);
@@ -137,7 +165,12 @@ pub fn start_watcher(task: Task, config: Config) -> Result<(Receiver<String>, Ar
                         match event.event.kind {
                             EventKind::Any | EventKind::Access(_) | EventKind::Other => {}
                             EventKind::Create(_) | EventKind::Modify(_) | EventKind::Remove(_) => {
-                                execute(&mut child)
+                                let _ = sender.send(make_log!(
+                                    info,
+                                    "File changes detected. Restarting the task..."
+                                ));
+
+                                execute(&mut child);
                             }
                         }
                     }

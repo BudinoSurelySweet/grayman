@@ -29,7 +29,7 @@ pub fn run_task_with_deps(task: &Task, config: &Config) -> Result<()> {
             drop(sender);
 
             for line in receiver {
-                println!("\x1b[90m  │\x1b[0m  {}", line);
+                println!("{}", line);
             }
 
             let status = child.wait()?;
