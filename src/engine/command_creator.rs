@@ -3,7 +3,7 @@ use anyhow::{Context, Result};
 use std::process::{Command, Stdio};
 
 pub enum StdioMode {
-    Direct,
+    _Direct,
     Piped,
 }
 
@@ -63,7 +63,7 @@ pub fn create_commands(task: &Task, config: &Config, mode: StdioMode) -> Result<
 
         match mode {
             // Connect the IO streams to the parent's terminal
-            StdioMode::Direct => command
+            StdioMode::_Direct => command
                 .stdin(Stdio::inherit())
                 .stdout(Stdio::inherit())
                 .stderr(Stdio::inherit()),

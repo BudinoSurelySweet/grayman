@@ -1,7 +1,7 @@
 use crate::{
     cli::args_data::ExecutionData,
     data::Config,
-    engine::watcher::{EventMessageType, WatcherEventData, start_watcher},
+    engine::watcher::start_watcher,
     log,
     serializer::{
         config::load_config,
@@ -45,18 +45,7 @@ pub fn execute_watch(data: ExecutionData) -> Result<()> {
         return Err(anyhow!(format!("There is no task named \"{}\"", task_name)));
     };
 
-    let emit_message = |data: WatcherEventData| {
-        match data.message_type {
-            EventMessageType::Info => log!(info, "{}", data.message),
-            EventMessageType::_Warn => log!(warn, "{}", data.message),
-            EventMessageType::_Error => log!(error, "{}", data.message),
-        }
-
-        Ok(())
-    };
-
-    start_watcher(&task, &config, emit_message)?;
-
+    start_watcher(&task, &config)?;
     save_last_task_name(&task_name)?;
 
     log!(info, "Task \"{}\" exited with success", &task_name);
