@@ -4,7 +4,7 @@
 
 ## Now
 
-- Add a way to select/deselect a task in the task selector.
+- Add a task's metadata viewer
 - Refining the UX of the TUI.
 
 ## Next

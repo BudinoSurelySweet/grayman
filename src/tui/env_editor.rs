@@ -1,10 +1,7 @@
 use crate::{
     generate_keybinds,
     serializer::config::load_config,
-    tui::{
-        style::{HIGHLIGHT_STYLE, get_style_by_status},
-        trait_panel::PanelWidget,
-    },
+    tui::{style::get_style_by_status, trait_panel::PanelWidget},
 };
 use crossterm::event::KeyCode;
 use ratatui::{

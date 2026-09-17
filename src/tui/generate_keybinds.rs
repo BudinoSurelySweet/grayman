@@ -16,12 +16,16 @@ macro_rules! generate_keybinds {
         }
 
         fn get_available_keybinds(&$self) -> ratatui::text::Line<'static> {
-            ratatui::text::Line::from_iter([
-                $(
-                    ratatui::text::Span::from($label),
-                    ratatui::text::Span::styled(concat!(" [", $shortcut, "] "), HIGHLIGHT_STYLE),
-                )*
-            ])
+            {
+            	use crate::tui::style::HIGHLIGHT_STYLE;
+
+	            ratatui::text::Line::from_iter([
+	                $(
+	                    ratatui::text::Span::from($label),
+	                    ratatui::text::Span::styled(concat!(" [", $shortcut, "] "), HIGHLIGHT_STYLE),
+	                )*
+	            ])
+	            }
         }
     };
 }

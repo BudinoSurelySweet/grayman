@@ -1,7 +1,7 @@
 use crate::{
     generate_keybinds,
     tui::{
-        style::{HIGHLIGHT_STYLE, get_color_by_status, get_style_by_status},
+        style::{get_color_by_status, get_style_by_status},
         trait_panel::PanelWidget,
     },
 };

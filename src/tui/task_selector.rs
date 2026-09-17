@@ -3,7 +3,7 @@ use crate::{
     generate_keybinds,
     serializer::{config::load_config, last_task::get_last_task_name},
     tui::{
-        style::{HIGHLIGHT_STYLE, get_style_by_status},
+        style::get_style_by_status,
         task_manager::{TakeTaskManagerRequest, TaskManagerRequest},
         trait_panel::PanelWidget,
     },
@@ -13,6 +13,7 @@ use crossterm::event::KeyCode;
 use ratatui::{
     layout::Alignment,
     prelude::{Buffer, Rect},
+    style::{Color, Stylize},
     symbols,
     text::Line,
     widgets::{Block, List, ListState, Padding, Paragraph, StatefulWidget, Widget, Wrap},
@@ -20,6 +21,7 @@ use ratatui::{
 
 pub struct TaskSelector {
     pub task_list_state: ListState,
+    selected_task_idx: usize,
 
     focused: bool,
     selected: bool,
@@ -29,6 +31,7 @@ pub struct TaskSelector {
 impl TaskSelector {
     pub fn new() -> Self {
         let mut task_list_state = ListState::default();
+        let selected_task_idx;
 
         // Select the first selected task on open
         if let Ok(name) = get_last_task_name()
@@ -39,8 +42,10 @@ impl TaskSelector {
             let index = task_list.iter().position(|task| task.name == name);
 
             task_list_state.select(index);
+            selected_task_idx = if let Some(index) = index { index } else { 0 };
         } else {
-            task_list_state.select_first()
+            task_list_state.select_first();
+            selected_task_idx = 0;
         }
 
         Self {
@@ -48,6 +53,7 @@ impl TaskSelector {
             selected: false,
             task_list_state,
             task_manager_request: None,
+            selected_task_idx,
         }
     }
 
@@ -58,13 +64,10 @@ impl TaskSelector {
 
         task_list.sort_by(|a, b| a.name.cmp(&b.name));
 
-        let index = self
-            .task_list_state
-            .selected()
-            .context("No selected task")?;
-        let task = task_list
-            .get(index)
-            .context(format!("There's no task in index \"{}\"", index))?;
+        let task = task_list.get(self.selected_task_idx).context(format!(
+            "There's no task in index \"{}\"",
+            self.selected_task_idx
+        ))?;
 
         return Ok(task.clone());
     }
@@ -105,6 +108,13 @@ impl PanelWidget for TaskSelector {
             self.task_list_state.select_next();
         },
 
+        "Select" ["space"]:
+        KeyCode::Char(' ') => {
+            if let Some(index) = self.task_list_state.selected() {
+                self.selected_task_idx = index;
+            }
+        }
+
         // "Edit" ["e"]:
         // KeyCode::Char('e') => {
         //     if let Ok(task) = self.get_selected_task() {
@@ -139,6 +149,18 @@ impl Widget for &mut TaskSelector {
                     config.tasks.iter().map(|task| task.name.clone()).collect();
 
                 task_list.sort();
+
+                let task_list: Vec<Line> = task_list
+                    .into_iter()
+                    .enumerate()
+                    .map(|(i, task)| {
+                        Line::from(task).bg(if i == self.selected_task_idx {
+                            Color::Black
+                        } else {
+                            Color::default()
+                        })
+                    })
+                    .collect();
 
                 StatefulWidget::render(
                     List::new(task_list)
