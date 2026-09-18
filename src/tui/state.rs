@@ -49,25 +49,25 @@ enum PanelJumpDirection {
 
 #[derive(Clone, PartialEq)]
 enum Panel {
-    TopLeft,
-    BottomLeft,
-    Right,
+    TopRight,
+    BottomRight,
+    Left,
 }
 
 impl Panel {
     fn next(&mut self) {
         *self = match self {
-            Panel::TopLeft => Panel::BottomLeft,
-            Panel::BottomLeft => Panel::Right,
-            Panel::Right => Panel::TopLeft,
+            Panel::TopRight => Panel::BottomRight,
+            Panel::BottomRight => Panel::Left,
+            Panel::Left => Panel::TopRight,
         };
     }
 
     fn previous(&mut self) {
         *self = match self {
-            Panel::TopLeft => Panel::Right,
-            Panel::BottomLeft => Panel::TopLeft,
-            Panel::Right => Panel::BottomLeft,
+            Panel::TopRight => Panel::Left,
+            Panel::BottomRight => Panel::TopRight,
+            Panel::Left => Panel::BottomRight,
         };
     }
 
@@ -76,20 +76,20 @@ impl Panel {
         type D = PanelJumpDirection;
 
         let panel = match (&self, direction) {
-            (P::TopLeft, D::Left) => None,
-            (P::TopLeft, D::Right) => Some(Panel::Right),
-            (P::TopLeft, D::Up) => None,
-            (P::TopLeft, D::Down) => Some(Panel::BottomLeft),
+            (P::TopRight, D::Left) => Some(Panel::Left),
+            (P::TopRight, D::Right) => None,
+            (P::TopRight, D::Up) => None,
+            (P::TopRight, D::Down) => Some(Panel::BottomRight),
 
-            (P::BottomLeft, D::Left) => None,
-            (P::BottomLeft, D::Right) => Some(Panel::Right),
-            (P::BottomLeft, D::Up) => Some(Panel::TopLeft),
-            (P::BottomLeft, D::Down) => None,
+            (P::BottomRight, D::Left) => Some(Panel::Left),
+            (P::BottomRight, D::Right) => None,
+            (P::BottomRight, D::Up) => Some(Panel::TopRight),
+            (P::BottomRight, D::Down) => None,
 
-            (P::Right, D::Left) => Some(Panel::TopLeft),
-            (P::Right, D::Right) => None,
-            (P::Right, D::Up) => None,
-            (P::Right, D::Down) => None,
+            (P::Left, D::Left) => None,
+            (P::Left, D::Right) => Some(Panel::TopRight),
+            (P::Left, D::Up) => None,
+            (P::Left, D::Down) => None,
         };
 
         let Some(panel) = panel else { return };
@@ -122,7 +122,7 @@ impl State {
 
         let mut state = Self {
             running: true,
-            focused_panel: Panel::TopLeft,
+            focused_panel: Panel::Left,
             selected_panel: None,
             hide_left_panels: false,
             task_mode: TaskMode::Run,
@@ -142,9 +142,9 @@ impl State {
 
     fn set_focused_panel_focus(&mut self, value: bool) {
         match self.focused_panel {
-            Panel::TopLeft => self.task_manager.set_focused(value),
-            Panel::BottomLeft => self.env_editor.set_focused(value),
-            Panel::Right => self.output_viewer.set_focused(value),
+            Panel::TopRight => self.task_manager.set_focused(value),
+            Panel::BottomRight => self.env_editor.set_focused(value),
+            Panel::Left => self.output_viewer.set_focused(value),
         }
     }
 
@@ -169,9 +169,9 @@ impl State {
     fn deselect_focused_panel(&mut self) {
         if let Some(panel) = &self.selected_panel {
             match panel {
-                Panel::TopLeft => self.task_manager.set_selected(false),
-                Panel::BottomLeft => self.env_editor.set_selected(false),
-                Panel::Right => self.output_viewer.set_selected(false),
+                Panel::TopRight => self.task_manager.set_selected(false),
+                Panel::BottomRight => self.env_editor.set_selected(false),
+                Panel::Left => self.output_viewer.set_selected(false),
             }
 
             self.selected_panel = None;
@@ -181,9 +181,9 @@ impl State {
     fn select_focused_panel(&mut self) {
         if self.selected_panel.is_none() {
             match self.focused_panel {
-                Panel::TopLeft => self.task_manager.set_selected(true),
-                Panel::BottomLeft => self.env_editor.set_selected(true),
-                Panel::Right => self.output_viewer.set_selected(true),
+                Panel::TopRight => self.task_manager.set_selected(true),
+                Panel::BottomRight => self.env_editor.set_selected(true),
+                Panel::Left => self.output_viewer.set_selected(true),
             }
 
             self.selected_panel = Some(self.focused_panel.clone())
@@ -246,16 +246,16 @@ impl State {
     fn handle_input(&mut self, key: KeyEvent) {
         // Force to take control of the input from a sub-panel
         if let Some(keybinds) = match &self.selected_panel {
-            Some(Panel::TopLeft) => self.task_manager.take_keybinds_control(),
-            Some(Panel::BottomLeft) => self.env_editor.take_keybinds_control(),
-            Some(Panel::Right) => self.output_viewer.take_keybinds_control(),
+            Some(Panel::TopRight) => self.task_manager.take_keybinds_control(),
+            Some(Panel::BottomRight) => self.env_editor.take_keybinds_control(),
+            Some(Panel::Left) => self.output_viewer.take_keybinds_control(),
             None => None,
         } && keybinds.contains(&key.code)
         {
             match &self.selected_panel {
-                Some(Panel::TopLeft) => self.task_manager.handle_input(key),
-                Some(Panel::BottomLeft) => self.env_editor.handle_input(key),
-                Some(Panel::Right) => self.output_viewer.handle_input(key),
+                Some(Panel::TopRight) => self.task_manager.handle_input(key),
+                Some(Panel::BottomRight) => self.env_editor.handle_input(key),
+                Some(Panel::Left) => self.output_viewer.handle_input(key),
                 None => {}
             }
 
@@ -316,7 +316,7 @@ impl State {
                     self.hide_left_panels = !self.hide_left_panels;
 
                     match self.focused_panel {
-                        Panel::TopLeft | Panel::BottomLeft if self.hide_left_panels => {
+                        Panel::TopRight | Panel::BottomRight if self.hide_left_panels => {
                             self.jump_focus(PanelJumpDirection::Right)
                         }
                         _ => {}
@@ -345,11 +345,11 @@ impl State {
                 }
                 KeyCode::Left | KeyCode::Char('h') => {
                     self.jump_focus(PanelJumpDirection::Left);
-
-                    self.hide_left_panels = false;
                 }
                 KeyCode::Right | KeyCode::Char('l') => {
                     self.jump_focus(PanelJumpDirection::Right);
+
+                    self.hide_left_panels = false;
                 }
 
                 // Select the current panel
@@ -363,9 +363,9 @@ impl State {
 
             // Passthrough
             _ => match &self.selected_panel {
-                Some(Panel::TopLeft) => self.task_manager.handle_input(key),
-                Some(Panel::BottomLeft) => self.env_editor.handle_input(key),
-                Some(Panel::Right) => self.output_viewer.handle_input(key),
+                Some(Panel::TopRight) => self.task_manager.handle_input(key),
+                Some(Panel::BottomRight) => self.env_editor.handle_input(key),
+                Some(Panel::Left) => self.output_viewer.handle_input(key),
                 None => {}
             },
         }
@@ -443,7 +443,7 @@ impl State {
         ]);
         let [_, center, bottom] = frame.area().layout(&layout);
 
-        let left_panel_constraint = if self.hide_left_panels {
+        let right_panel_constraint = if self.hide_left_panels {
             if frame.area().width > min_width_for_hiding {
                 Constraint::Length(4)
             } else {
@@ -452,11 +452,11 @@ impl State {
         } else {
             Constraint::Length(30)
         };
-        let layout = Layout::horizontal([left_panel_constraint, Constraint::Fill(1)]).spacing(1);
+        let layout = Layout::horizontal([Constraint::Fill(1), right_panel_constraint]).spacing(1);
         let [left, right] = center.layout(&layout);
 
         let layout = Layout::vertical([Constraint::Ratio(1, 2), Constraint::Fill(1)]);
-        let [top_left, bottom_left] = left.layout(&layout);
+        let [top_right, bottom_right] = right.layout(&layout);
 
         /*
          * Widgets
@@ -467,19 +467,19 @@ impl State {
                 let top_block = Block::bordered();
                 let bottom_block = Block::bordered();
 
-                frame.render_widget(top_block, top_left);
-                frame.render_widget(bottom_block, bottom_left);
+                frame.render_widget(top_block, top_right);
+                frame.render_widget(bottom_block, bottom_right);
             }
         } else {
-            frame.render_widget(&mut self.task_manager, top_left);
-            frame.render_widget(&mut self.env_editor, bottom_left);
+            frame.render_widget(&mut self.task_manager, top_right);
+            frame.render_widget(&mut self.env_editor, bottom_right);
         }
 
         let available_keybinds = if let Some(panel) = &self.selected_panel {
             match panel {
-                Panel::TopLeft => self.task_manager.get_available_keybinds(),
-                Panel::BottomLeft => self.env_editor.get_available_keybinds(),
-                Panel::Right => self.output_viewer.get_available_keybinds(),
+                Panel::TopRight => self.task_manager.get_available_keybinds(),
+                Panel::BottomRight => self.env_editor.get_available_keybinds(),
+                Panel::Left => self.output_viewer.get_available_keybinds(),
             }
         } else {
             let start_stop_label = if self.stop_watcher_flag.is_some() {
@@ -516,6 +516,13 @@ impl State {
         }
 
         frame.render_widget(title_and_version_and_global_keybinds, bottom);
-        frame.render_widget(&mut self.output_viewer, right);
+
+        if !self.hide_left_panels && frame.area().width < min_width_for_hiding {
+            let block = Block::bordered();
+
+            frame.render_widget(block, left);
+        } else {
+            frame.render_widget(&mut self.output_viewer, left);
+        }
     }
 }
