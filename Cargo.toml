@@ -1,10 +1,12 @@
 [package]
 name = "grayman"
+description = "A CLI and TUI task runner"
 version = "0.2.0"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/BudinoSurelySweet/grayman"
 authors = ["Marco Molossi"]
+readme = "README.md"
 
 [dependencies]
 ansi-to-tui = "8.0.1"
