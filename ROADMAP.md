@@ -4,8 +4,7 @@
 
 ## Now
 
-- Write the README.md
-- Add some documentation.
+...
 
 ## Next
 
