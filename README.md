@@ -2,6 +2,10 @@
 
 Grayman is CLI and a TUI to execute tasks.
 
+## How to use the CLI and the TUI
+
+...
+
 ## Anatomy of the configuration file
 
 ...
