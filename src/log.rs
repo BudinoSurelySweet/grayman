@@ -1,5 +1,8 @@
 #[macro_export]
 macro_rules! log_type {
+    (waiting) => {
+        "[grayman] waiting".white().bold()
+    };
     (info) => {
         "[grayman] info".bright_blue().bold()
     };

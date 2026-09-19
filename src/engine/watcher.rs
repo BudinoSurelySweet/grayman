@@ -13,7 +13,7 @@ use notify_debouncer_full::{
     new_debouncer,
     notify::{EventKind, RecursiveMode},
 };
-use std::{path::Path, process::Child, sync::mpsc, time::Duration};
+use std::{io::stdout, path::Path, process::Child, sync::mpsc, time::Duration};
 
 fn clear_terminal() -> Result<()> {
     execute!(
@@ -44,7 +44,7 @@ fn execute(task_list: &[Task], config: &Config, child: &mut Option<Child>) -> Re
             drop(sender);
 
             for line in receiver {
-                println!("\r\x1b[90m  │\x1b[0m  {}", line);
+                println!("{}", line);
             }
 
             let status = c.wait()?;
@@ -58,7 +58,7 @@ fn execute(task_list: &[Task], config: &Config, child: &mut Option<Child>) -> Re
             }
 
             if i == task_list.len() - 1 {
-                log!(info, "Waiting for changes...");
+                log!(waiting, "Waiting for changes...");
 
                 *child = Some(c);
             }
@@ -109,7 +109,12 @@ pub fn start_watcher(task: &Task, config: &Config, clear_terminal_on_restart: bo
                             clear_terminal()?;
                         }
 
-                        log!(info, "File changes detected.");
+                        execute!(
+                            stdout(),
+                            cursor::MoveUp(1),
+                            terminal::Clear(terminal::ClearType::CurrentLine)
+                        )?;
+
                         log!(info, "Restarting the task...");
 
                         execute(&task_list, config, &mut child)?;

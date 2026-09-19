@@ -1,12 +1,25 @@
 use crate::{
-    cli::args_data::AddAction,
     data::Task,
     log,
     serializer::config::{load_config, save_config},
 };
 use anyhow::Result;
 use inquire::validator::{MinLengthValidator, Validation};
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt};
+
+enum AddAction {
+    Var,
+    Task,
+}
+
+impl fmt::Display for AddAction {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            AddAction::Var => write!(f, "Variable"),
+            AddAction::Task => write!(f, "Task"),
+        }
+    }
+}
 
 fn prompt_task_creation() -> Result<Task> {
     let config = load_config()?;
@@ -71,7 +84,7 @@ fn prompt_task_creation() -> Result<Task> {
         .prompt()?;
     let mut depends_on: Vec<String> = Vec::new();
 
-    loop {
+    while !task_list.is_empty() {
         let user_want_to_continue = inquire::Confirm::new("Do you want to add a dependency?")
             .with_default(false)
             .with_starting_input("No")
@@ -164,8 +177,14 @@ fn prompt_task_creation() -> Result<Task> {
 }
 
 // TODO: Devo spostare la logica di creazione nell'engine
-pub fn execute_add(action: AddAction) -> Result<()> {
+pub fn execute_add() -> Result<()> {
     let mut config = load_config()?;
+
+    let action = inquire::Select::new(
+        "What do you want to add?",
+        vec![AddAction::Task, AddAction::Var],
+    )
+    .prompt()?;
 
     match action {
         AddAction::Var => {

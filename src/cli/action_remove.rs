@@ -1,14 +1,34 @@
 use crate::{
-    cli::args_data::RemoveAction,
     data::Task,
     log,
     serializer::config::{load_config, save_config},
 };
 use anyhow::{Result, anyhow};
+use std::fmt;
+
+enum RemoveAction {
+    Var,
+    Task,
+}
+
+impl fmt::Display for RemoveAction {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            RemoveAction::Var => write!(f, "Variable"),
+            RemoveAction::Task => write!(f, "Task"),
+        }
+    }
+}
 
 // TODO: Devo spostare la logica di rimozione nell'engine
-pub fn execute_remove(action: RemoveAction) -> Result<()> {
+pub fn execute_remove() -> Result<()> {
     let mut config = load_config()?;
+
+    let action = inquire::Select::new(
+        "What do you want to remove?",
+        vec![RemoveAction::Task, RemoveAction::Var],
+    )
+    .prompt()?;
 
     match action {
         RemoveAction::Var => {
