@@ -1,7 +1,7 @@
 use super::output_viewer::OutputViewerStatus;
 use crate::{
     engine::multithread::{runner::run_task_with_deps, watcher::start_watcher},
-    serializer::{config::load_config, last_task::save_last_task_name},
+    serializer::{cache::Cache, config::load_config},
     tui::{
         env_editor::EnvEditor, output_viewer::OutputViewer, style::HIGHLIGHT_STYLE,
         task_manager::TaskManager, trait_panel::PanelWidget,
@@ -274,33 +274,27 @@ impl State {
                     // Stop the watcher if it's on
                     if let Some(flag) = &self.stop_watcher_flag {
                         flag.store(true, Ordering::Relaxed);
-
                         self.stop_watcher_flag = None;
 
                         return;
                     }
 
+                    let Ok(config) = load_config() else { return };
+                    let Ok(task) = self.task_manager.get_selected_task() else {
+                        return;
+                    };
+                    let cache = Cache {
+                        last_task: Some(task.name.clone()),
+                    };
+
+                    // TODO: Manage this error and show it to the user
+                    let _ = cache.save();
+
                     match self.task_mode {
                         TaskMode::Run => {
-                            let Ok(config) = load_config() else { return };
-                            let Ok(task) = self.task_manager.get_selected_task() else {
-                                return;
-                            };
-
-                            // TODO: Manage this error and show it to the user
-                            let _ = save_last_task_name(&task.name);
-
                             self.output_receiver = run_task_with_deps(task, config).ok();
                         }
                         TaskMode::Watch => {
-                            let Ok(config) = load_config() else { return };
-                            let Ok(task) = self.task_manager.get_selected_task() else {
-                                return;
-                            };
-
-                            // TODO: Manage this error and show it to the user
-                            let _ = save_last_task_name(&task.name);
-
                             let Some((receiver, stop_flag)) = start_watcher(task, config).ok()
                             else {
                                 return;

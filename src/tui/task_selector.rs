@@ -1,7 +1,7 @@
 use crate::{
     data::Task,
     generate_keybinds,
-    serializer::{config::load_config, last_task::get_last_task_name},
+    serializer::{cache::Cache, config::load_config},
     tui::{
         style::get_style_by_status,
         task_manager::{TakeTaskManagerRequest, TaskManagerRequest},
@@ -34,7 +34,7 @@ impl TaskSelector {
         let selected_task_idx;
 
         // Select the first selected task on open
-        if let Ok(name) = get_last_task_name()
+        if let Some(name) = Cache::load().last_task
             && let Ok(config) = load_config()
         {
             let mut task_list = config.tasks.clone();

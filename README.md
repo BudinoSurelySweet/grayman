@@ -2,6 +2,10 @@
 
 Grayman is CLI and a TUI to execute tasks.
 
+## Anatomy of the configuration file
+
+...
+
 ## Known Limitations
 
 1. Due to the way Grayman spawns processes, some commands may lose their colored output. If you encounter this issue, check if the command you are using has a specific flag to force colors. Below there is a table with some useful flags.

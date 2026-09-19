@@ -3,10 +3,7 @@ use crate::{
     data::Config,
     engine::watcher::start_watcher,
     log,
-    serializer::{
-        config::load_config,
-        last_task::{get_last_task_name, save_last_task_name},
-    },
+    serializer::{cache::Cache, config::load_config},
 };
 use anyhow::{Result, anyhow};
 
@@ -35,7 +32,7 @@ pub fn execute_watch(data: WatchCommandData) -> Result<()> {
         task_name = prompt_available_tasks(&config)?;
     } else if let Some(name) = data.name {
         task_name = name;
-    } else if let Ok(name) = get_last_task_name() {
+    } else if let Some(name) = Cache::load().last_task {
         task_name = name;
     } else {
         task_name = prompt_available_tasks(&config)?;
@@ -45,7 +42,12 @@ pub fn execute_watch(data: WatchCommandData) -> Result<()> {
         return Err(anyhow!(format!("There is no task named \"{}\"", task_name)));
     };
 
-    save_last_task_name(&task_name)?;
+    let cache = Cache {
+        last_task: Some(task_name.clone()),
+    };
+
+    cache.save()?;
+
     start_watcher(task, &config, data.clear_on_restart)?;
 
     log!(info, "Task \"{}\" exited with success", &task_name);

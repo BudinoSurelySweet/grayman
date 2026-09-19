@@ -3,10 +3,7 @@ use crate::{
     data::Config,
     engine::runner::run_task_with_deps,
     log,
-    serializer::{
-        config::load_config,
-        last_task::{get_last_task_name, save_last_task_name},
-    },
+    serializer::{cache::Cache, config::load_config},
 };
 use anyhow::{Context, Result};
 
@@ -25,7 +22,7 @@ pub fn execute_run(data: RunCommandData) -> Result<()> {
         task_name = prompt_available_tasks(&config)?;
     } else if let Some(name) = data.name {
         task_name = name;
-    } else if let Ok(name) = get_last_task_name() {
+    } else if let Some(name) = Cache::load().last_task {
         task_name = name;
     } else {
         task_name = prompt_available_tasks(&config)?;
@@ -41,7 +38,11 @@ pub fn execute_run(data: RunCommandData) -> Result<()> {
 
     run_task_with_deps(task, &config)?;
 
-    save_last_task_name(&task_name)?;
+    let cache = Cache {
+        last_task: Some(task_name.clone()),
+    };
+
+    cache.save()?;
 
     log!(info, "Task \"{}\" exited with success", &task_name);
 

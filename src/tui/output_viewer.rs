@@ -141,7 +141,7 @@ impl Widget for &mut OutputViewer {
         // Render the output
         Paragraph::new(text)
             .block(block)
-            .wrap(Wrap { trim: true })
+            .wrap(Wrap { trim: false })
             .scroll((self.scroll, 0))
             .render(area, buf);
 
