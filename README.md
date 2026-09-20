@@ -4,7 +4,11 @@ Grayman is CLI and a TUI to execute tasks.
 
 ## Installation
 
-...
+The only way to install Grayman for now is through cargo:
+
+```
+cargo install grayman
+```
 
 ## How to use
 
